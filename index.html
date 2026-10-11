@@ -293,6 +293,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
   <label for="rEmoji">Emoji</label><input class="field" id="rEmoji" maxlength="4" placeholder="automatique" style="max-width:140px">
   <label for="rIng">Ingrédients (un par ligne)</label>
   <textarea id="rIng" placeholder="250 g de pâtes&#10;3 œufs&#10;20 cl de crème&#10;2 c. à soupe d'huile&#10;sel, poivre"></textarea>
+  <label style="display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;margin-top:12px"><input type="checkbox" id="rHealthy" style="width:20px;height:20px;accent-color:var(--accent)"> 💚 Recette healthy</label>
   <label for="rSteps">Étapes (une par ligne)</label>
   <textarea id="rSteps" placeholder="Cuire les pâtes.&#10;Mélanger les œufs et la crème.&#10;…"></textarea>
   <div class="row" style="margin-top:16px">
@@ -423,6 +424,53 @@ const RECIPES=[
  {name:"Poêlée pommes de terre lardons",emoji:"🥔",time:30,ing:[{n:"Pommes de terre",q:.8,d:"mass"},{n:"Lardons",q:.2,d:"mass"},{n:"Oignon",q:1,d:"u"}],steps:["Couper les pommes de terre en dés.","Les faire dorer 20 min à la poêle avec un filet d'huile.","Ajouter lardons et oignon, poursuivre 8 min."]},
  {name:"Croque-monsieur",emoji:"🥪",time:15,ing:[{n:"Pain de mie",q:8,d:"u"},{n:"Jambon",q:.1,d:"mass"},{n:"Fromage",q:.1,d:"mass"},{n:"Beurre",q:.02,d:"mass",o:1}],steps:["Beurrer les tranches à l'extérieur.","Garnir de jambon et fromage.","Cuire à la poêle ou au four jusqu'à ce que ce soit doré."]}
 ];
+
+/* ---------- Collection Healthy (recettes ajoutées depuis vos photos) ---------- */
+const HEALTHY=[
+ {name:"Verrines chia & mangue",emoji:"🥭",cat:"dessert",time:50,serves:"2 pers.",tags:["healthy"],lines:[
+  "20 g de graines de chia","Mangue surgelée (2 gros morceaux)","19 cl de lait d'amande (ou de coco)","0.5 c. à café d'extrait de vanille liquide","10 cl de crème de coco","1 fruit de la Passion (facultatif)","Copeaux de noix de coco (facultatif)"],
+  steps:["Fouetter les graines de chia avec le lait d'amande, ajouter la vanille, laisser reposer 5 min puis mélanger à nouveau.","Réserver 40 min au réfrigérateur, puis fouetter pour décoller les graines.","Laisser la mangue décongeler légèrement, puis la mixer avec la crème de coco.","Monter les verrines en alternant crème de mangue et pudding de chia (deux couches de chaque).","Terminer éventuellement par un peu de fruit de la Passion et des copeaux de coco."]},
+ {name:"Crème au chocolat healthy",emoji:"🍫",cat:"dessert",time:15,serves:"4 pers.",tags:["healthy"],lines:[
+  "125 g de chocolat noir (65 % de cacao)","2 jaunes d'œufs","10 cl de crème de coco","1 c. à café de cacao en poudre 100 %","20 cl de lait d'amande","Pistaches (facultatif)"],
+  steps:["Battre les jaunes d'œufs avec la crème de coco, puis ajouter le cacao.","Dans une casserole, faire fondre le chocolat dans le lait d'amande chaud.","Ajouter le mélange œufs-coco et chauffer 2 à 3 min en fouettant sans arrêt, jusqu'à ce que la crème épaississe légèrement (comme une crème anglaise).","Verser dans des petits pots et laisser prendre au moins 4 h au réfrigérateur.","Parsemer de pistaches concassées au moment de servir."]},
+ {name:"Carrot cake",emoji:"🥕",cat:"gouter",time:50,serves:"8 pers.",tags:["healthy"],lines:[
+  "200 g de carottes","45 g de farine de blé T150","30 g de farine d'orge mondé","1 sachet de levure chimique","1 pincée de sel","70 g d'amandes en poudre","60 g de noisettes en poudre","50 g de sucre de coco","0.5 c. à café de cannelle","0.25 c. à café de gingembre","2 œufs","5 cl de boisson végétale (cajou ou avoine)","75 g d'huile végétale (type Isio 4)","20 g de purée de noisette","3 c. à café de fromage St Môret (bombées, pour le glaçage)","2 c. à café de beurre de cacahuète (bombées, pour le glaçage)","15 g de sirop d'agave (glaçage)","Noix de pécan (ou autres fruits secs)"],
+  steps:["Mélanger les ingrédients secs : farines, levure, sel, amandes et noisettes en poudre, sucre de coco et épices.","Ajouter les œufs au centre et mélanger, puis la boisson végétale, l'huile et la purée de noisette.","Incorporer les carottes râpées.","Verser dans un moule à cake de 24 cm beurré et cuire 30 à 35 min à 200 °C.","Glaçage : mélanger énergiquement le St Môret, le beurre de cacahuète et le sirop d'agave. Étaler une fine couche sur le cake refroidi et décorer de noix de pécan."]},
+ {name:"Mini-banana bread",emoji:"🍌",cat:"gouter",time:25,serves:"8 pièces",tags:["healthy"],lines:[
+  "1 banane","50 g de son d'avoine","35 g d'amandes en poudre","1 c. à café de bicarbonate","60 g de compote banane-mangue sans sucre ajouté","60 g de fromage blanc (ou de yaourt végétal)","1 œuf","40 g de beurre","1 pincée de sel","Pépites de chocolat noir, noix (facultatif)"],
+  steps:["Mélanger le son d'avoine, les amandes en poudre et le bicarbonate. Ajouter la compote, le fromage blanc et les trois quarts de la banane écrasée.","Séparer l'œuf : ajouter le jaune, puis le beurre fondu, et mélanger.","Monter le blanc en neige avec le sel et l'incorporer délicatement.","Répartir dans des moules à financiers et poser une fine rondelle de banane sur chacun (plus quelques pépites ou noix si vous voulez).","Cuire 15 min maximum à 180 °C. Idéal au petit-déjeuner comme au goûter."]},
+ {name:"Mousse poire, granola & sauce chocolat",emoji:"🍐",cat:"dessert",time:20,serves:"4 pers.",tags:["healthy"],lines:[
+  "225 g de poires au sirop","220 g de mascarpone","1 œuf","1 c. à soupe de miel d'acacia","Granola (maison ou du commerce)","50 g de chocolat noir (70 % de cacao)","4 cl de boisson végétale"],
+  steps:["Mousse : séparer le blanc du jaune. Mélanger le jaune avec le miel et le mascarpone (ou 120 g de mascarpone + 100 g de fromage blanc pour plus de légèreté).","Monter le blanc en neige et l'incorporer délicatement.","Rincer les poires, les écraser à la fourchette et les ajouter doucement. Réserver au frais.","Sauce : au dernier moment, faire fondre le chocolat avec la boisson végétale quelques secondes au micro-ondes.","Monter les verrines : mousse de poire, granola, puis un filet de sauce chocolat tiède. Astuce : un granola du commerce à moins de 10 % de sucre convient."]},
+ {name:"Granola sucré maison",emoji:"🥣",cat:"petitdej",time:20,serves:"230 g",tags:["healthy"],lines:[
+  "40 g de noisettes","30 g d'amandes","75 g de flocons d'avoine","35 g de graines (tournesol, courge)","30 g d'huile de coco","20 g de miel d'acacia (ou sirop d'agave)"],
+  steps:["Concasser grossièrement les noisettes et les amandes, puis les mélanger avec les flocons d'avoine et les graines.","Ajouter l'huile de coco fondue et le miel, et bien mélanger.","Étaler sur une plaque recouverte d'un tapis antiadhésif et cuire 12 min à 170 °C, jusqu'à ce que ce soit juste doré.","Laisser refroidir avant de conserver dans un bocal."]},
+ {name:"Muffins pépites de chocolat & noisettes",emoji:"🧁",cat:"gouter",time:30,serves:"8 pièces",tags:["healthy"],lines:[
+  "100 g de farine de blé T150","70 g de farine d'orge mondé","0.5 sachet de levure chimique","30 g d'amandes en poudre","2 œufs","12 cl de lait d'amande","25 g de miel d'acacia","20 g de sirop d'agave","100 g de beurre (ou de margarine)","100 g de pépites de chocolat noir","30 noisettes"],
+  steps:["Mélanger les farines, la levure et les amandes en poudre. Creuser un puits et ajouter les œufs un à un.","Ajouter le lait d'amande, le miel et le sirop d'agave, mélanger doucement à la cuillère en bois, puis incorporer le beurre fondu.","Quand la pâte est homogène, ajouter les pépites de chocolat.","Répartir dans des moules à muffins, parsemer de noisettes concassées et cuire 20 min à 180 °C. Attendre 10 min avant de démouler."]},
+ {name:"Tartelettes fraises & crème d'amande",emoji:"🍓",cat:"dessert",time:40,serves:"8 pers.",tags:["healthy"],lines:[
+  "1 pâte sablée","24 fraises","Menthe","2 jaunes d'œufs","35 g de sirop d'agave","6 cl de boisson végétale (cajou ou avoine)","60 g d'amandes en poudre","30 g de beurre"],
+  steps:["Découper 8 disques dans la pâte sablée, en garnir des moules à tartelettes et cuire 15 min à 180 °C. Laisser refroidir.","Crème d'amande : dans une casserole, fouetter les jaunes avec le sirop d'agave, ajouter la boisson végétale puis les amandes en poudre.","Chauffer à feu moyen-fort sans cesser de fouetter jusqu'à ce que la crème épaississe. Hors du feu, ajouter le beurre, mélanger et laisser refroidir.","Garnir généreusement les fonds de crème d'amande, puis ajouter les fraises et la menthe.","Variante : poire et pépites de chocolat noir à la place des fraises et de la menthe."]},
+ {name:"Cake aux courgettes, chèvre & jambon",emoji:"🥒",cat:"entree",time:55,serves:"8 pers.",tags:["healthy"],lines:[
+  "3 courgettes (petites)","Bûche de chèvre (une demie, ou autre fromage)","75 g de dés de jambon","80 g de farine de blé T150","50 g de farine d'épeautre T150","20 g de son d'avoine","1 sachet de levure chimique","3 œufs","5 c. à soupe d'huile d'olive","13 cl de boisson végétale neutre (cajou, avoine ou soja)"],
+  steps:["Couper les courgettes en petits morceaux et les faire cuire 10 min dans une poêle huilée, jusqu'à ce qu'elles soient fondantes.","Mélanger les farines, le son d'avoine et la levure. Incorporer les œufs un à un, puis l'huile d'olive et la boisson végétale. Saler et poivrer.","Ajouter les courgettes, le chèvre en petits morceaux et les dés de jambon.","Verser dans un moule à cake de 24 cm et cuire 30 min à 200 °C.","Laisser refroidir, puis 1 h au réfrigérateur avant de démouler."]},
+ {name:"Wok cantonais aux pleurotes & tofu",emoji:"🥢",cat:"plat",time:45,serves:"4 pers.",tags:["healthy"],lines:[
+  "140 g de riz basmati (ou 500 g de riz de konjac)","250 g de pleurotes","200 g de tofu","100 g de petits pois","70 g d'allumettes de jambon (facultatif)","1 oignon","3 c. à soupe d'huile d'olive","3 c. à soupe de sauce soja","3 œufs","1.5 c. à soupe d'huile de sésame","Coriandre"],
+  steps:["Cuire séparément le riz et les petits pois à l'eau.","Faire dorer les pleurotes et l'oignon émincé dans une poêle avec 2 c. à soupe d'huile d'olive et 1 c. à soupe de sauce soja, puis les pousser sur le côté.","Battre les œufs, les cuire en brouillade dans la poêle, les couper en lanières et mélanger avec les champignons.","Ajouter le riz, les petits pois, le tofu en cubes et éventuellement le jambon, puis le reste d'huile d'olive et de sauce soja, et l'huile de sésame.","Poivrer, mélanger et réchauffer 5 min à feu moyen. Servir avec de la coriandre. Astuce : le tofu peut être remplacé par du poulet."]},
+ {name:"Quiche au saumon & aux épinards",emoji:"🐟",cat:"plat",time:55,serves:"6 pers.",tags:["healthy"],lines:[
+  "1 pâte brisée","320 g de saumon frais","350 g d'épinards hachés surgelés","1 échalote","3 œufs","20 cl de crème végétale (avoine, soja, cajou)","120 g de fromage blanc","70 g de gruyère râpé","Huile d'olive"],
+  steps:["Étaler la pâte brisée sur du papier sulfurisé dans un moule de 30 cm et la cuire à blanc 10 min à 200 °C.","Pendant ce temps, précuire 3 min le saumon avec l'échalote émincée dans une poêle huilée. Décongeler les épinards.","Battre les œufs avec la crème végétale et le fromage blanc, ajouter les épinards et le gruyère. Saler et poivrer.","Répartir le saumon en morceaux sur la pâte, verser la préparation et cuire 20 à 25 min à 200 °C."]},
+ {name:"Curry de patate douce, courgette & crevettes",emoji:"🍛",cat:"plat",time:45,serves:"4 pers.",tags:["healthy"],lines:[
+  "1 patate douce","1 courgette","16 crevettes (grosses)","6 champignons de Paris","2 gousses d'ail","2 c. à soupe d'huile d'olive","400 g de tomates concassées en conserve","20 cl de crème de coco légère","2 c. à café de cumin","2 c. à café de curry","1 c. à café de curcuma","Cacahuètes grillées sans sel (une poignée)","Coriandre"],
+  steps:["Couper la patate douce épluchée et la courgette en cubes et les cuire 10 min à l'eau.","Dans une grande casserole, faire revenir les champignons et 1 gousse d'ail hachée dans 1 c. à soupe d'huile pendant 1 min.","Ajouter les tomates, la crème de coco et les épices. Saler, poivrer, mélanger et cuire 2 min.","Ajouter les légumes bien égouttés et laisser mijoter 3 min (ajuster le curry si besoin).","Décortiquer les crevettes et les faire sauter quelques minutes avec la seconde gousse d'ail et le reste d'huile.","Servir le curry parsemé de cacahuètes concassées et de coriandre, avec les crevettes par-dessus."]},
+ {name:"Chakchouka de haricots rouges au poivron",emoji:"🍳",cat:"plat",time:28,serves:"4 pers.",tags:["healthy"],lines:[
+  "400 g de haricots rouges en conserve","1 poivron (gros, ou poivrons surgelés)","2 c. à soupe d'huile d'olive","400 g de tomates concassées en conserve","2 c. à café de cumin en poudre","4 œufs","Comté râpé (ou gruyère)"],
+  steps:["Couper le poivron en lamelles et le faire revenir 10 min dans une poêle huilée, jusqu'à ce qu'il soit tendre.","Ajouter les haricots rouges, les tomates et le cumin. Saler, poivrer et réchauffer 5 min.","Dans une autre poêle, cuire les œufs au plat et les parsemer de comté.","Quand le fromage a fondu, déposer les œufs sur les haricots et le poivron."]},
+ {name:"Quiche aux courgettes, chèvre & bacon",emoji:"🥧",cat:"plat",time:70,serves:"6 pers.",tags:["healthy"],lines:[
+  "1 pâte brisée","3 courgettes (petites)","1 bûche de chèvre","75 g d'allumettes de bacon","4 œufs","20 cl de crème végétale (avoine, cajou ou soja)","1 c. à soupe d'huile d'olive","Thym"],
+  steps:["Étaler la pâte brisée dans un moule de 30 cm et la cuire à blanc 10 min à 200 °C.","Couper les courgettes en rondelles et les cuire 10 à 15 min à la poêle avec l'huile.","Fouetter les œufs avec la crème végétale, saler, poivrer et ajouter le thym.","Disposer les courgettes sur la pâte, ajouter le bacon puis la préparation. Couvrir de rondelles de chèvre et cuire 20 min à 180 °C."]}
+];
+RECIPES.push(...HEALTHY);
 
 /* ---------- Utilitaires ---------- */
 const $=s=>document.querySelector(s);
@@ -634,7 +682,9 @@ function renderPrices(){
 /* ---------- Rendu : recettes ---------- */
 const CATS={entree:{label:"Entrées",one:"Entrée",icon:"🥗"},plat:{label:"Plats",one:"Plat",icon:"🍲"},dessert:{label:"Desserts",one:"Dessert",icon:"🍰"},petitdej:{label:"Petit-déjeuner",one:"Petit-déjeuner",icon:"🥐"},gouter:{label:"Goûters",one:"Goûter",icon:"🍪"}};
 const BASE_CATS=["plat","plat","plat","plat","entree","plat","gouter","petitdej","plat","dessert","gouter","plat","entree","plat","plat"];
-RECIPES.forEach((r,i)=>{r.id="b"+i;r.cat=BASE_CATS[i]||"plat";});
+RECIPES.forEach((r,i)=>{r.id="b"+i;r.cat=r.cat||BASE_CATS[i]||"plat";});
+const prettyRaw=t=>String(t).replace(/(^|\s)1[.,]5(?=\s)/g,"$11 ½").replace(/(^|\s)0[.,]5(?=\s)/g,"$1½").replace(/(^|\s)0[.,]25(?=\s)/g,"$1¼").replace(/(^|\s)0[.,]75(?=\s)/g,"$1¾");
+const isHealthy=r=>Array.isArray(r.tags)&&r.tags.includes("healthy");
 function guessCat(name){
   const n=normalize(name);
   if(/\b(salade|soupe|veloute|potage|gaspacho|carpaccio|tartare|terrine|rillette|oeufs? mimosa|verrine|entree|tapas|houmous|guacamole|bruschetta|feuillete)/.test(n))return"entree";
@@ -678,11 +728,13 @@ function renderRecipes(){
   $("#catChips").innerHTML=[["all","Toutes ("+all.length+")"]].concat(Object.entries(CATS).map(([k,c])=>[k,c.icon+" "+c.label+" ("+nCat(k)+")"]))
     .map(([k,l])=>`<button class="chip ${catFilter===k?"active":""}" data-cat="${k}">${l}</button>`).join("");
   const nMine=all.filter(r=>!isBase(r)).length;
-  const chips=[["all","Tout"],["mine","⭐ Mes recettes ("+nMine+")"],["ready","✅ Faisables"],["gaspi","🌱 Anti-gaspi"],["few","🛒 1–2 achats"]];
+  const nHealthy=all.filter(isHealthy).length;
+  const chips=[["all","Tout"],["healthy","💚 Healthy ("+nHealthy+")"],["mine","⭐ Mes recettes ("+nMine+")"],["ready","✅ Faisables"],["gaspi","🌱 Anti-gaspi"],["few","🛒 1–2 achats"]];
   $("#recipeChips").innerHTML=chips.map(([k,l])=>`<button class="chip ${recipeFilter===k?"active":""}" data-rf="${k}">${l}</button>`).join("");
   let list=all.map(r=>({r,a:analyse(r)}));
   if(catFilter!=="all")list=list.filter(o=>recipeCat(o.r)===catFilter);
   if(recipeFilter==="mine")list=list.filter(o=>!isBase(o.r));
+  if(recipeFilter==="healthy")list=list.filter(o=>isHealthy(o.r));
   if(recipeFilter==="ready")list=list.filter(o=>!o.a.missing.length);
   if(recipeFilter==="gaspi")list=list.filter(o=>o.a.urgent.length);
   if(recipeFilter==="few")list=list.filter(o=>o.a.missing.length>0&&o.a.missing.length<=2);
@@ -698,9 +750,9 @@ function renderRecipes(){
     const urg=[...new Map(a.urgent.map(u=>[u.name,u])).values()];
     const pic=r.img?`<img class="rthumb" src="${esc(r.img)}" alt="">`:`<span style="font-size:28px">${esc(r.emoji||"🍽️")}</span>`;
     const c=CATS[recipeCat(r)];
-    return`<div class="card"><div class="row">${pic}<div class="grow"><h3 style="margin:0">${esc(r.name)}${!isBase(r)?' <span class="badge">⭐ Perso</span>':""}</h3><div class="small muted">${c.icon} ${c.one} · ${r.time?r.time+" min · ":""}${head}</div></div></div>
+    return`<div class="card"><div class="row">${pic}<div class="grow"><h3 style="margin:0">${esc(r.name)}${isHealthy(r)?' <span class="badge">💚 Healthy</span>':""}${!isBase(r)?' <span class="badge">⭐ Perso</span>':""}</h3><div class="small muted">${c.icon} ${c.one} · ${r.time?r.time+" min · ":""}${r.serves?"👥 "+esc(r.serves)+" · ":""}${head}</div></div></div>
       ${urg.length?`<div class="small" style="margin-top:8px;color:var(--warn)">🌱 Utilise ${urg.map(u=>esc(u.name)+(u.d<0?" (périmé)":u.d===0?" (aujourd'hui)":` (${u.d} j)`)).join(", ")}</div>`:""}
-      <div style="margin-top:8px">${a.checks.map(c=>`<div class="ing"><span class="s">${c.status==="ok"?"✅":c.status==="ok?"?"🔎":c.status==="low"?"⚠️":c.g.o?"➖":"❌"}</span><span class="grow">${esc(c.g.n)} <span class="muted">${c.g.nq?"":fmtQty(c.g.q,c.g.d)}${c.g.o?(c.g.nq?"":" · ")+"facultatif":""}${c.status==="low"?" · en stock "+fmtQty(c.have,c.g.d):""}${c.status==="ok?"?" · à vérifier":""}</span></span></div>`).join("")}</div>
+      <div style="margin-top:8px">${a.checks.map(c=>`<div class="ing"><span class="s">${c.status==="ok"?"✅":c.status==="ok?"?"🔎":c.status==="low"?"⚠️":c.g.o?"➖":"❌"}</span><span class="grow">${c.g.raw?esc(prettyRaw(c.g.raw))+' <span class="muted">'+(c.g.o&&!/facultatif/i.test(c.g.raw)?"· facultatif":""):esc(c.g.n)+' <span class="muted">'+(c.g.nq?"":fmtQty(c.g.q,c.g.d))+(c.g.o?(c.g.nq?"":" · ")+"facultatif":"")}${c.status==="low"?" · en stock "+fmtQty(c.have,c.g.d):""}${c.status==="ok?"?" · à vérifier":""}</span></span></div>`).join("")}</div>
       ${m?`<div class="small muted" style="margin-top:6px">🛒 Achats : ${a.missing.map(x=>esc(x.n)).join(", ")}${a.cost>0?` · env. ${money(a.cost)}${a.costKnown?"":" + prix inconnus"}`:""}</div>`:""}
       ${r.steps&&r.steps.length?`<details><summary>Préparation</summary><ol>${r.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></details>`:""}
       <div class="row" style="gap:18px"><button class="linkbtn" data-redit="${esc(r.id)}">✏️ Modifier</button><button class="linkbtn" style="color:var(--danger)" data-rdel="${esc(r.id)}">🗑️ Supprimer</button></div>
@@ -818,6 +870,7 @@ function openRecipeDlg(r){
   $("#rTitle").textContent=r?"Modifier la recette":"Nouvelle recette";
   $("#rName").value=r?r.name:"";$("#rEmoji").value=r?(r.emoji||""):"";$("#rTime").value=r&&r.time?r.time:"";
   $("#rCat").value=r?recipeCat(r):(catFilter!=="all"?catFilter:"plat");rCatTouched=!!r;
+  $("#rHealthy").checked=r?isHealthy(r):recipeFilter==="healthy";
   ingOrig=new Map();
   $("#rIng").value=r?r.ing.map(g=>{const l=ingLine(g);ingOrig.set(l,g);return l;}).join("\n"):"";
   $("#rSteps").value=r?(r.steps||[]).join("\n"):"";
@@ -842,7 +895,9 @@ function saveRecipe(){
   const steps=$("#rSteps").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
   const id=editingRecipe?editingRecipe.id:"c"+uid();
   const cat=$("#rCat").value||guessCat(name);
-  const r={id,name:cap(name),emoji:$("#rEmoji").value.trim()||guessEmoji(name),cat,time:parseInt($("#rTime").value,10)||null,ing,steps,img:recipeImg||null,custom:1};
+  const prevTags=(editingRecipe&&editingRecipe.tags||[]).filter(t=>t!=="healthy");
+  const tags=$("#rHealthy").checked?prevTags.concat("healthy"):prevTags;
+  const r={id,name:cap(name),emoji:$("#rEmoji").value.trim()||guessEmoji(name),cat,time:parseInt($("#rTime").value,10)||null,serves:editingRecipe&&editingRecipe.serves||null,tags,ing,steps,img:recipeImg||null,custom:1};
   if(state.recipes.some(x=>x.id===id))state.recipes=state.recipes.map(x=>x.id===id?r:x);else state.recipes.push(r); // une recette de base modifiée devient votre version
   if(!editingRecipe)recipeFilter="all";
   catFilter=cat;
@@ -1669,6 +1724,7 @@ $("#importBtn").onclick=()=>$("#importFile").click();
 $("#importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const s=JSON.parse(rd.result);if(!Array.isArray(s.items))throw 0;state=fromSaved(s);save();renderAll();$("#menuDlg").close();toast("✅ Sauvegarde importée");}catch(err){toast("Fichier invalide");}};rd.readAsText(f);e.target.value="";};
 
 /* Init */
+RECIPES.forEach(r=>{if(!r.ing&&r.lines)r.ing=r.lines.map(parseIngLine).filter(Boolean);});
 fillZoneSelect($("#mZone"),true);fillZoneSelect($("#eZone"),false);fillZoneSelect($("#sZone"),false);
 $("#rCat").innerHTML=Object.entries(CATS).map(([k,c])=>`<option value="${k}">${c.icon} ${c.one}</option>`).join("");
 load();renderAll();
