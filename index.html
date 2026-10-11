@@ -420,6 +420,16 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
   </div>
 </div></dialog>
 
+<dialog id="linkDlg"><div class="inner">
+  <h2>J'ai déjà « <span id="lName"></span> »</h2>
+  <p class="small muted" style="margin:0 0 8px">Choisissez le produit de votre stock qui correspond. L'application s'en souviendra pour toutes les recettes.</p>
+  <input class="search" id="lSearch" type="search" placeholder="Rechercher dans le stock…">
+  <div id="lList" class="pick-list" style="max-height:40vh"></div>
+  <button class="btn secondary block" id="lPantry" style="margin-top:10px">🧂 Toujours en stock, ne jamais l'ajouter aux courses</button>
+  <div id="lCurrent" class="small muted" style="margin-top:10px"></div>
+  <div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn secondary" id="lClose">Fermer</button></div>
+</div></dialog>
+
 <div id="toast"></div>
 
 <script>
@@ -543,8 +553,8 @@ function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show"
 
 /* ---------- État ---------- */
 const STORE_KEY="kitchenchef_v1";
-const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{},hiddenBase:[],plan:{},shopExtra:[],shopDone:{}});
-const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{},hiddenBase:Array.isArray(s.hiddenBase)?s.hiddenBase:[],plan:s.plan&&typeof s.plan==="object"?s.plan:{},shopExtra:Array.isArray(s.shopExtra)?s.shopExtra:[],shopDone:s.shopDone&&typeof s.shopDone==="object"?s.shopDone:{}});
+const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{},hiddenBase:[],plan:{},shopExtra:[],shopDone:{},aliases:{},pantry:[]});
+const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{},hiddenBase:Array.isArray(s.hiddenBase)?s.hiddenBase:[],plan:s.plan&&typeof s.plan==="object"?s.plan:{},shopExtra:Array.isArray(s.shopExtra)?s.shopExtra:[],shopDone:s.shopDone&&typeof s.shopDone==="object"?s.shopDone:{},aliases:s.aliases&&typeof s.aliases==="object"?s.aliases:{},pantry:Array.isArray(s.pantry)?s.pantry:[]});
 let state=emptyState();
 function load(){try{const raw=localStorage.getItem(STORE_KEY);if(raw)state=fromSaved(JSON.parse(raw));}catch(e){}}
 function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){toast("⚠️ Sauvegarde impossible sur cet appareil");}}
@@ -558,8 +568,44 @@ function matchScore(qKey,itemKey,exclude){
   if(iw.length&&iw.every(w=>qw.includes(w)))return 1;
   return 0;
 }
+/* Équivalences courantes entre le nom dans la recette et le nom en magasin */
+const SYN_GROUPS=[
+  ["boisson vegetale","lait amande","lait avoine","lait soja","lait riz","lait cajou","boisson amande","boisson avoine","boisson soja","boisson riz","boisson cajou","lait vegetal"],
+  ["lait amande","boisson amande"],["lait avoine","boisson avoine"],["lait soja","boisson soja"],["lait riz","boisson riz"],["lait cajou","boisson cajou"],
+  ["creme vegetale","creme soja","creme avoine","creme cajou","creme riz","cuisine soja","cuisine avoine"],
+  ["fromage rape","emmental rape","gruyere rape","comte rape","emmental","gruyere","comte","mozzarella rape"],
+  ["gruyere rape","emmental rape","comte rape","fromage rape"],["comte rape","gruyere rape","emmental rape","fromage rape"],
+  ["lardon","allumette bacon","bacon","allumette lardon"],["allumette bacon","lardon","bacon"],["allumette jambon","jambon"],
+  ["huile vegetale","huile colza","huile tournesol","isio","huile pepin raisin"],
+  ["levure chimique","levure","poudre lever"],["bicarbonate","bicarbonate soude"],
+  ["viande hachee","steak hache","boeuf hache"],["oignon","oignon jaune","oignon rouge"],["echalote","echalote grise"],
+  ["tomate concassee","tomate pelee","pulpe tomate","tomate concassee conserve"],["tomate concassee conserve","tomate concassee","pulpe tomate","tomate pelee"],
+  ["haricot rouge conserve","haricot rouge"],["sauce soja","sauce soja salee"],["miel acacia","miel"],["sucre","sucre poudre","sucre semoule"],
+  ["chocolat noir","chocolat noir patissier","chocolat patissier"],["pepite chocolat noir","pepite chocolat"],["fromage blanc","faisselle"],
+  ["oeuf","oeuf frais","oeuf plein air","oeuf bio"]
+].map(g=>g.map(x=>x.split(" ").map(singular).join(" ")));
+function keyVariants(qKey){
+  const v=new Set([qKey]);
+  for(const g of SYN_GROUPS)if(g[0]===qKey||(g[0].includes(" ")&&qKey.startsWith(g[0]+" ")))g.slice(1).forEach(x=>v.add(x));
+  return[...v];
+}
+function linkScore(qKey,itemKey,exclude){
+  if((state.aliases[qKey]||[]).includes(itemKey))return 5; // lien choisi par vous
+  let best=0;for(const k of keyVariants(qKey)){const sc=matchScore(k,itemKey,exclude);if(sc>best)best=k===qKey?sc:Math.min(sc,1);}
+  return best;
+}
 function findItems(qKey,exclude){
-  return state.items.map(i=>({i,s:matchScore(qKey,i.key,exclude)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).map(o=>o.i);
+  return state.items.map(i=>({i,s:linkScore(qKey,i.key,exclude)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).map(o=>o.i);
+}
+const isPantry=key=>state.pantry.includes(key);
+/* Conversion entre unités : 1 kg ≈ 1 L (sirops, crèmes, laits…) ; une pièce ne se convertit pas */
+function convertQty(q,from,to){if(from===to)return q;if((from==="mass"&&to==="vol")||(from==="vol"&&to==="mass"))return q;return null;}
+/* Ce que le stock couvre pour un ingrédient : quantité dans l'unité de la recette + produits en unité différente */
+function stockCover(g,left){
+  const items=findItems(keyOf(g.n),g.x).filter(i=>(left?left.get(i.id):i.qty)>0);
+  let have=0;const other=[];
+  for(const i of items){const q=left?left.get(i.id):i.qty;const c=convertQty(q,i.dim,g.d);if(c==null)other.push(i);else have+=c;}
+  return{items,have,other};
 }
 
 /* ---------- Prix ---------- */
@@ -572,7 +618,7 @@ function recordPrice(name,key,dim,store,unitPrice){
 }
 function bestPrice(qKey,dim,exclude){
   let best=null;
-  for(const pk in state.prices){const e=state.prices[pk];if(e.dim!==dim||!matchScore(qKey,e.key,exclude))continue;
+  for(const pk in state.prices){const e=state.prices[pk];if(e.dim!==dim||!linkScore(qKey,e.key,exclude))continue;
     for(const sk in e.stores){const s=e.stores[sk];if(!best||s.p<best.p)best={p:s.p,store:s.label};}}
   return best;
 }
@@ -740,13 +786,14 @@ function analyse(r){
   let missing=[],urgent=[],cost=0,costKnown=true,checks=[];
   for(const g of r.ing){
     const key=keyOf(g.n);
-    const matches=findItems(key,g.x).filter(i=>i.qty>0);
-    const same=matches.filter(i=>i.dim===g.d);
-    const have=same.reduce((s,i)=>s+i.qty,0);
+    const cov=stockCover(g);const matches=cov.items,have=cov.have;
     let status;
-    if(g.nq)status=matches.length?"ok":"no";
-    else if(same.length)status=have+1e-9>=g.q?"ok":"low";
-    else if(matches.length)status="ok?";
+    if(isPantry(key))status="ok";
+    else if(g.nq)status=matches.length?"ok":"no";
+    else if(have+1e-9>=g.q)status="ok";
+    else if(cov.other.some(i=>(state.aliases[key]||[]).includes(i.key)))status="ok";
+    else if(cov.other.length)status="ok?"; // en stock mais compté autrement (ex. 1 bouteille) : on ne le rachète pas
+    else if(have>0)status="low";
     else status="no";
     matches.forEach(i=>{const d=daysUntil(i.expiry);if(d!=null&&d<=3)urgent.push({name:i.name,d});});
     if(!g.o&&(status==="no"||status==="low")){
@@ -788,7 +835,7 @@ function renderRecipes(){
     const c=CATS[recipeCat(r)];
     return`<div class="card"><div class="row">${pic}<div class="grow"><h3 style="margin:0">${esc(r.name)}${isHealthy(r)?' <span class="badge">💚 Healthy</span>':""}${!isBase(r)?' <span class="badge">⭐ Perso</span>':""}</h3><div class="small muted">${c.icon} ${c.one} · ${r.time?r.time+" min · ":""}${r.serves?"👥 "+esc(r.serves)+" · ":""}${head}</div></div></div>
       ${urg.length?`<div class="small" style="margin-top:8px;color:var(--warn)">🌱 Utilise ${urg.map(u=>esc(u.name)+(u.d<0?" (périmé)":u.d===0?" (aujourd'hui)":` (${u.d} j)`)).join(", ")}</div>`:""}
-      <div style="margin-top:8px">${a.checks.map(c=>`<div class="ing"><span class="s">${c.status==="ok"?"✅":c.status==="ok?"?"🔎":c.status==="low"?"⚠️":c.g.o?"➖":"❌"}</span><span class="grow">${c.g.raw?esc(prettyRaw(c.g.raw))+' <span class="muted">'+(c.g.o&&!/facultatif/i.test(c.g.raw)?"· facultatif":""):esc(c.g.n)+' <span class="muted">'+(c.g.nq?"":fmtQty(c.g.q,c.g.d))+(c.g.o?(c.g.nq?"":" · ")+"facultatif":"")}${c.status==="low"?" · en stock "+fmtQty(c.have,c.g.d):""}${c.status==="ok?"?" · à vérifier":""}</span></span></div>`).join("")}</div>
+      <div style="margin-top:8px">${a.checks.map(c=>`<div class="ing"${c.status==="no"||c.status==="low"?` data-have="${esc(c.g.n)}" style="cursor:pointer"`:""}><span class="s">${c.status==="ok"?"✅":c.status==="ok?"?"🔎":c.status==="low"?"⚠️":c.g.o?"➖":"❌"}</span><span class="grow">${c.g.raw?esc(prettyRaw(c.g.raw))+' <span class="muted">'+(c.g.o&&!/facultatif/i.test(c.g.raw)?"· facultatif":""):esc(c.g.n)+' <span class="muted">'+(c.g.nq?"":fmtQty(c.g.q,c.g.d))+(c.g.o?(c.g.nq?"":" · ")+"facultatif":"")}${c.status==="low"?" · en stock "+fmtQty(c.have,c.g.d):""}${c.status==="ok?"?" · à vérifier":""}</span></span></div>`).join("")}</div>
       ${m?`<div class="small muted" style="margin-top:6px">🛒 Achats : ${a.missing.map(x=>esc(x.n)).join(", ")}${a.cost>0?` · env. ${money(a.cost)}${a.costKnown?"":" + prix inconnus"}`:""}</div>`:""}
       ${r.steps&&r.steps.length?`<details><summary>Préparation</summary><ol>${r.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></details>`:""}
       <div class="row" style="gap:18px"><button class="linkbtn" data-redit="${esc(r.id)}">✏️ Modifier</button><button class="linkbtn" style="color:var(--danger)" data-rdel="${esc(r.id)}">🗑️ Supprimer</button></div>
@@ -804,8 +851,8 @@ function cook(id){
   for(const g of r.ing){
     if(g.nq)continue;
     let need=g.q;
-    const items=findItems(keyOf(g.n),g.x).filter(i=>i.qty>0&&i.dim===g.d).sort((a,b)=>(a.expiry||"9999").localeCompare(b.expiry||"9999"));
-    for(const i of items){if(need<=1e-9)break;const take=Math.min(i.qty,need);i.qty-=take;need-=take;}
+    const items=findItems(keyOf(g.n),g.x).filter(i=>i.qty>0&&convertQty(1,i.dim,g.d)!=null).sort((a,b)=>(a.expiry||"9999").localeCompare(b.expiry||"9999"));
+    for(const i of items){if(need<=1e-9)break;const avail=convertQty(i.qty,i.dim,g.d);const take=Math.min(avail,need);i.qty-=convertQty(take,g.d,i.dim);need-=take;}
     if(items.length)log.push(g.n);
   }
   state.items=state.items.filter(i=>i.qty>1e-9);
@@ -1634,7 +1681,7 @@ function togglePlan(id,on){
 }
 function pricesFor(key,dim,x){
   const by={};
-  for(const pk in state.prices){const e=state.prices[pk];if(e.dim!==dim||!matchScore(key,e.key,x))continue;
+  for(const pk in state.prices){const e=state.prices[pk];if(e.dim!==dim||!linkScore(key,e.key,x))continue;
     for(const sk in e.stores){const s=e.stores[sk];if(!by[sk]||s.p<by[sk].p)by[sk]={store:s.label,p:s.p};}}
   return Object.values(by);
 }
@@ -1658,13 +1705,17 @@ function buildShopList(){
   for(const e of state.shopExtra)add({n:e.name,q:e.qty,d:e.dim,nq:!e.qty},1,["✍️"]);
   // on retire ce qui est déjà en stock (sans compter deux fois le même produit)
   const left=new Map(state.items.map(i=>[i.id,i.qty]));
-  const rows=[];
+  const rows=[],checks=[];
   for(const n of needs.values()){
+    if(isPantry(n.key))continue;
     const matches=findItems(n.key,n.x).filter(i=>(left.get(i.id)||0)>0);
     if(n.nq){if(matches.length)continue;rows.push({...n,buy:null});continue;}
     let need=n.q;
-    for(const i of matches.filter(i=>i.dim===n.d)){if(need<=1e-9)break;const t=Math.min(left.get(i.id),need);left.set(i.id,left.get(i.id)-t);need-=t;}
+    for(const i of matches){const c=convertQty(left.get(i.id),i.dim,n.d);if(c==null||need<=1e-9)continue;const t=Math.min(c,need);left.set(i.id,left.get(i.id)-convertQty(t,n.d,i.dim));need-=t;}
     if(need<=1e-6)continue;
+    const other=matches.filter(i=>convertQty(1,i.dim,n.d)==null);
+    if(other.some(i=>(state.aliases[n.key]||[]).includes(i.key)))continue; // relié par vous : disponible
+    if(other.length){checks.push({...n,buy:niceQty(need,n.d),stockName:other.map(i=>i.name+" ("+fmtQty(i.qty,i.dim)+")").join(", ")});continue;}
     rows.push({...n,buy:niceQty(need,n.d),inStock:n.q-need>1e-6});
   }
   for(const r of rows){
@@ -1672,6 +1723,7 @@ function buildShopList(){
     const ps=pricesFor(r.key,r.d,r.x).map(s=>({...s,cost:s.p*r.buy})).sort((a,b)=>a.cost-b.cost);
     r.offers=ps;r.best=ps[0]||null;r.avg=ps.length?ps.reduce((a,s)=>a+s.cost,0)/ps.length:null;
   }
+  rows.checks=checks;
   return rows;
 }
 function shopText(rows){
@@ -1714,7 +1766,7 @@ function renderShop(){
       <div class="card"><b>${totalAvg?money(totalAvg):"—"}</b><span class="small muted">prix moyen</span></div></div>
       ${totalAvg-total>0.05?`<p class="small" style="margin:-4px 0 10px;color:var(--accent)">💡 En suivant les enseignes conseillées, vous économisez environ ${money(totalAvg-total)} par rapport au prix moyen.</p>`:""}
       ${unknown?`<p class="small muted" style="margin:-4px 0 10px">${unknown} article(s) sans prix enregistré : ils ne sont pas comptés dans le total.</p>`:""}`:"";
-  if(!rows.length){
+  if(!rows.length&&!(rows.checks||[]).length){
     $("#shopList").innerHTML=Object.keys(state.plan).length||state.shopExtra.length
       ?`<div class="empty"><div class="big">✅</div><p>Vous avez déjà tout en stock !</p></div>`
       :`<div class="empty"><div class="big">🛒</div><p>Choisissez des recettes : la liste se remplit toute seule, sans ce que vous avez déjà.</p></div>`;
@@ -1728,9 +1780,12 @@ function renderShop(){
       const other=r.offers&&r.offers.length>1?r.offers[r.offers.length-1]:null;
       return`<label class="item shop-row${done(r)?" done":""}"><input type="checkbox" class="pchk" style="margin:0" data-done="${esc(r.k)}"${done(r)?" checked":""}>
         <div class="grow"><div class="name" style="white-space:normal">${esc(r.name)}</div>
-          <div class="meta">${r.buy!=null?`<b style="color:var(--ink)">${fmtQty(r.buy,r.d)}</b>`:"quantité libre"}${r.inStock?" · complète votre stock":""} · ${[...r.from].join("")}</div></div>
+          <div class="meta">${r.buy!=null?`<b style="color:var(--ink)">${fmtQty(r.buy,r.d)}</b>`:"quantité libre"}${r.inStock?" · complète votre stock":""} · ${[...r.from].join("")}</div>
+          <button class="linkbtn small" style="padding:4px 0" data-have="${esc(r.name)}">J'en ai déjà</button></div>
         <div style="text-align:right;flex:none">${r.best?`<div class="p" style="font-weight:700">${money(r.best.cost)}</div><div class="small muted">moy. ${money(r.avg)}</div>${other?`<div class="small" style="color:var(--warn)">${esc(other.store)} : ${money(other.cost)}</div>`:""}`:`<span class="small muted">—</span>`}</div></label>`;}).join("");
   }
+  const ck=rows.checks||[];
+  if(ck.length)html+=`<div class="zone-title">🔎 Sans doute déjà en stock <span class="count">${ck.length} · non comptés</span></div>`+ck.map(r=>`<div class="item" style="align-items:flex-start"><div class="grow"><div class="name" style="white-space:normal">${esc(r.name)} <span class="small muted">· ${fmtQty(r.buy,r.d)}</span></div><div class="meta">Vous avez ${esc(r.stockName)} : vérifiez qu'il en reste assez.</div></div><button class="btn secondary" style="padding:8px 10px;font-size:13px" data-addcheck="${esc(r.name)}|${fmtQty(r.buy,r.d)}">+ Liste</button></div>`).join("");
   const extras=state.shopExtra.length?`<div class="small muted" style="margin-top:10px">Ajoutés à la main : ${state.shopExtra.map((e,i)=>`${esc(e.name)} <button class="x" data-xdel="${i}" aria-label="Retirer">×</button>`).join(" · ")}</div>`:"";
   $("#shopList").innerHTML=html+extras;
 }
@@ -1755,6 +1810,30 @@ function shopToStock(){
 function shopClear(){
   if(!confirm("Vider la liste (recettes choisies et articles ajoutés) ?"))return;
   state.plan={};state.shopExtra=[];state.shopDone={};save();renderAll();
+}
+
+/* ---------- Relier un ingrédient de recette à un produit du stock ---------- */
+let linkKey=null,linkName="";
+function openLinkDlg(name){
+  linkName=name;linkKey=keyOf(name);
+  $("#lName").textContent=name;$("#lSearch").value="";renderLinkList();$("#linkDlg").showModal();
+}
+function renderLinkList(){
+  const q=keyOf($("#lSearch").value);const al=state.aliases[linkKey]||[];
+  const items=state.items.filter(i=>!q||i.key.includes(q)||words(q).every(w=>i.key.includes(w))).sort((a,b)=>(al.includes(b.key)-al.includes(a.key))||a.name.localeCompare(b.name,"fr"));
+  $("#lList").innerHTML=items.map(i=>`<label class="pick-row${al.includes(i.key)?" on":""}"><input type="checkbox" data-lk="${esc(i.key)}"${al.includes(i.key)?" checked":""}><span class="grow">${esc(i.name)}<br><span class="small muted">${ZONES[i.zone].icon} ${fmtQty(i.qty,i.dim)}</span></span></label>`).join("")||`<p class="small muted">Rien dans le stock ne correspond.</p>`;
+  const pantry=isPantry(linkKey);
+  $("#lPantry").textContent=pantry?"↩️ Ne plus le considérer comme toujours en stock":"🧂 Toujours en stock, ne jamais l'ajouter aux courses";
+  $("#lCurrent").textContent=al.length?"Relié à : "+al.map(k=>(state.items.find(i=>i.key===k)||{name:k}).name).join(", "):"";
+}
+function toggleLink(stockKey,on){
+  const al=new Set(state.aliases[linkKey]||[]);on?al.add(stockKey):al.delete(stockKey);
+  if(al.size)state.aliases[linkKey]=[...al];else delete state.aliases[linkKey];
+  save();renderLinkList();renderAll();
+}
+function togglePantry(){
+  if(isPantry(linkKey))state.pantry=state.pantry.filter(k=>k!==linkKey);else state.pantry.push(linkKey);
+  save();renderAll();$("#linkDlg").close();toast(isPantry(linkKey)?"🧂 « "+linkName+" » ne sera plus ajouté aux courses":"« "+linkName+" » peut de nouveau aller dans les courses");
 }
 
 /* ---------- Divers ---------- */
@@ -1788,6 +1867,7 @@ $("#priceSearch").addEventListener("input",renderPrices);
 $("#recipeChips").addEventListener("click",e=>{const b=e.target.closest("[data-rf]");if(!b)return;recipeFilter=b.dataset.rf;renderRecipes();});
 $("#recipeList").addEventListener("click",e=>{
   const c=e.target.closest("[data-cook]");if(c){cook(c.dataset.cook);return;}
+  const hv=e.target.closest("[data-have]");if(hv){openLinkDlg(hv.dataset.have);return;}
   const pl=e.target.closest("[data-plan]");if(pl){const on=!plannedCount(pl.dataset.plan);togglePlan(pl.dataset.plan,on);toast(on?"🛒 Ajoutée aux courses":"Retirée des courses");return;}
   const ed=e.target.closest("[data-redit]");if(ed){const r=allRecipes().find(x=>x.id===ed.dataset.redit);if(r)openRecipeDlg(r);return;}
   const dl=e.target.closest("[data-rdel]");if(dl)deleteRecipe(allRecipes().find(x=>x.id===dl.dataset.rdel));
@@ -1867,7 +1947,14 @@ $("#shopChosen").addEventListener("click",e=>{
   if(m){const id=m.dataset.pminus;if(state.plan[id]>1)state.plan[id]--;else delete state.plan[id];save();renderShop();renderRecipes();}
 });
 $("#shopList").addEventListener("change",e=>{const b=e.target.closest("[data-done]");if(!b)return;if(b.checked)state.shopDone[b.dataset.done]=1;else delete state.shopDone[b.dataset.done];save();renderShop();});
-$("#shopList").addEventListener("click",e=>{const x=e.target.closest("[data-xdel]");if(!x)return;e.preventDefault();state.shopExtra.splice(+x.dataset.xdel,1);save();renderShop();});
+$("#shopList").addEventListener("click",e=>{
+  const h=e.target.closest("[data-have]");if(h){e.preventDefault();openLinkDlg(h.dataset.have);return;}
+  const a=e.target.closest("[data-addcheck]");if(a){const [n,q]=a.dataset.addcheck.split("|");const p=parseSegment((q+" "+n).toLowerCase(),{store:null});state.shopExtra.push({name:n,qty:p.error?null:p.qty,dim:p.error?"u":p.dim});save();renderShop();return;}
+  const x=e.target.closest("[data-xdel]");if(!x)return;e.preventDefault();state.shopExtra.splice(+x.dataset.xdel,1);save();renderShop();});
+$("#lSearch").addEventListener("input",renderLinkList);
+$("#lList").addEventListener("change",e=>{const b=e.target.closest("[data-lk]");if(b)toggleLink(b.dataset.lk,b.checked);});
+$("#lPantry").onclick=togglePantry;
+$("#lClose").onclick=()=>$("#linkDlg").close();
 $("#shopExtraAdd").onclick=shopAddExtra;
 $("#shopExtraIn").addEventListener("keydown",e=>{if(e.key==="Enter")shopAddExtra();});
 $("#shopShare").onclick=shopShare;
