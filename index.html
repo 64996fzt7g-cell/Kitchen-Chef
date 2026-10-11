@@ -40,7 +40,7 @@ header h1 span{color:var(--accent)}
 .iconbtn:active{background:var(--line)}
 main{padding:14px 16px 24px;max-width:720px;margin:0 auto}
 .view{display:none}.view.active{display:block}
-nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs button{border:0;background:none;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);cursor:pointer}
 nav.tabs button .ic{font-size:21px;line-height:1.2}
 nav.tabs button.active{color:var(--accent);font-weight:600}
@@ -141,6 +141,17 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .sheet{position:absolute;left:0;right:0;bottom:0;z-index:2;background:var(--card);color:var(--ink);border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.35);max-height:78vh;overflow:auto;animation:sheetup .2s ease-out}
 .sheet[hidden],#sExtra[hidden],#sZone[hidden],#sAlt[hidden]{display:none}
 @keyframes sheetup{from{transform:translateY(40px);opacity:0}}
+nav.tabs button{position:relative}
+.tab-badge{position:absolute;top:4px;left:calc(50% + 8px);background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;border-radius:999px;padding:1px 6px;line-height:1.4}
+.tab-badge[hidden]{display:none}
+.pick-list{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:0 10px}
+.pick-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.pick-row:last-child{border-bottom:0}
+.pick-row input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.pick-row.on .grow{font-weight:600}
+.shop-row{cursor:pointer;align-items:flex-start}
+.shop-row.done{opacity:.5}
+.shop-row.done .name{text-decoration:line-through}
 .linkbtn{border:0;background:none;color:var(--accent);font-weight:600;font-size:14px;cursor:pointer;padding:6px 0}
 dialog .inner{padding:18px}
 .menu-list button{display:block;width:100%;text-align:left;border:0;background:none;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;font-size:16px}
@@ -221,6 +232,30 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
     <div id="priceList"></div>
   </section>
 
+  <!-- COURSES -->
+  <section class="view" id="view-shop">
+    <div class="card">
+      <h2>🍽️ Recettes à préparer</h2>
+      <div id="shopChosen"></div>
+      <button class="btn secondary block" id="shopPickBtn" style="margin-top:10px">➕ Choisir des recettes</button>
+      <div id="shopPicker" hidden>
+        <input class="search" id="shopSearchIn" type="search" placeholder="Rechercher une recette…" style="margin:10px 0 6px">
+        <div id="shopPickList" class="pick-list"></div>
+      </div>
+    </div>
+    <div class="row" style="gap:8px;margin-bottom:12px">
+      <input class="field grow" id="shopExtraIn" placeholder="Ajouter un article (ex. 1 l de lait, éponges)">
+      <button class="btn" id="shopExtraAdd" style="padding:10px 14px">+</button>
+    </div>
+    <div id="shopSummary"></div>
+    <div id="shopList"></div>
+    <div id="shopActions" class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap" hidden>
+      <button class="btn grow" id="shopShare">📤 Partager / copier</button>
+      <button class="btn secondary grow" id="shopToStock">📥 Cochés → stock</button>
+      <button class="btn danger" id="shopClear" style="flex-basis:100%">🗑️ Vider la liste</button>
+    </div>
+  </section>
+
   <!-- RECETTES -->
   <section class="view" id="view-recipes">
     <button class="btn block" id="newRecipeBtn" style="margin-bottom:12px">➕ Ajouter une recette</button>
@@ -233,8 +268,9 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
 <nav class="tabs" id="tabs">
   <button data-view="stock" class="active"><span class="ic">🥫</span>Stock</button>
   <button data-view="add"><span class="ic">➕</span>Ajouter</button>
-  <button data-view="prices"><span class="ic">🏷️</span>Prix</button>
   <button data-view="recipes"><span class="ic">🍲</span>Recettes</button>
+  <button data-view="shop"><span class="ic">🛒</span>Courses<span class="tab-badge" id="shopBadge" hidden></span></button>
+  <button data-view="prices"><span class="ic">🏷️</span>Prix</button>
 </nav>
 
 <dialog id="menuDlg"><div class="inner">
@@ -507,8 +543,8 @@ function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show"
 
 /* ---------- État ---------- */
 const STORE_KEY="kitchenchef_v1";
-const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{},hiddenBase:[]});
-const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{},hiddenBase:Array.isArray(s.hiddenBase)?s.hiddenBase:[]});
+const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{},hiddenBase:[],plan:{},shopExtra:[],shopDone:{}});
+const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{},hiddenBase:Array.isArray(s.hiddenBase)?s.hiddenBase:[],plan:s.plan&&typeof s.plan==="object"?s.plan:{},shopExtra:Array.isArray(s.shopExtra)?s.shopExtra:[],shopDone:s.shopDone&&typeof s.shopDone==="object"?s.shopDone:{}});
 let state=emptyState();
 function load(){try{const raw=localStorage.getItem(STORE_KEY);if(raw)state=fromSaved(JSON.parse(raw));}catch(e){}}
 function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){toast("⚠️ Sauvegarde impossible sur cet appareil");}}
@@ -756,7 +792,10 @@ function renderRecipes(){
       ${m?`<div class="small muted" style="margin-top:6px">🛒 Achats : ${a.missing.map(x=>esc(x.n)).join(", ")}${a.cost>0?` · env. ${money(a.cost)}${a.costKnown?"":" + prix inconnus"}`:""}</div>`:""}
       ${r.steps&&r.steps.length?`<details><summary>Préparation</summary><ol>${r.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></details>`:""}
       <div class="row" style="gap:18px"><button class="linkbtn" data-redit="${esc(r.id)}">✏️ Modifier</button><button class="linkbtn" style="color:var(--danger)" data-rdel="${esc(r.id)}">🗑️ Supprimer</button></div>
-      <button class="btn secondary block" style="margin-top:10px" data-cook="${esc(r.id)}">J'ai cuisiné ça : déduire du stock</button></div>`;}).join("");
+      <div class="row" style="gap:8px;margin-top:10px">
+        <button class="btn ${plannedCount(r.id)?"":"secondary "}grow" data-plan="${esc(r.id)}">${plannedCount(r.id)?"✓ Dans les courses":"🛒 Aux courses"}</button>
+        <button class="btn secondary grow" data-cook="${esc(r.id)}">🍽️ Cuisiné</button>
+      </div></div>`;}).join("");
 }
 function cook(id){
   const r=allRecipes().find(x=>x.id===id);if(!r)return;
@@ -1585,13 +1624,147 @@ async function freeFridge(file){
   return[...found.values()];
 }
 
+/* ---------- Courses : recettes choisies → liste groupée par enseigne la moins chère ---------- */
+let shopPickOpen=false,shopSearch="";
+const plannedCount=id=>state.plan[id]||0;
+function togglePlan(id,on){
+  if(on===undefined)on=!plannedCount(id);
+  if(on)state.plan[id]=Math.max(1,plannedCount(id));else delete state.plan[id];
+  save();renderRecipes();renderShop();
+}
+function pricesFor(key,dim,x){
+  const by={};
+  for(const pk in state.prices){const e=state.prices[pk];if(e.dim!==dim||!matchScore(key,e.key,x))continue;
+    for(const sk in e.stores){const s=e.stores[sk];if(!by[sk]||s.p<by[sk].p)by[sk]={store:s.label,p:s.p};}}
+  return Object.values(by);
+}
+function niceQty(q,d){ // arrondi lisible pour acheter
+  if(d==="u")return Math.ceil(q-1e-9);
+  if(q<0.1)return Math.ceil(q*100-1e-9)/100;
+  return Math.ceil(q*20-1e-9)/20; // pas de 50 g / 5 cl
+}
+function buildShopList(){
+  const needs=new Map();
+  const add=(g,times,from)=>{
+    if(g.o)return; // facultatif : pas dans la liste
+    const key=keyOf(g.n),k=key+"|"+(g.nq?"nq":g.d);
+    let n=needs.get(k);
+    if(!n){n={k,key,name:g.n,d:g.d,nq:!!g.nq,q:0,x:g.x,from:new Set()};needs.set(k,n);}
+    if(!g.nq)n.q+=g.q*times;
+    from.forEach(f=>n.from.add(f));
+  };
+  const recipes=allRecipes();
+  for(const id in state.plan){const r=recipes.find(x=>x.id===id);if(!r)continue;for(const g of r.ing)add(g,state.plan[id],[r.emoji||"🍽️"]);}
+  for(const e of state.shopExtra)add({n:e.name,q:e.qty,d:e.dim,nq:!e.qty},1,["✍️"]);
+  // on retire ce qui est déjà en stock (sans compter deux fois le même produit)
+  const left=new Map(state.items.map(i=>[i.id,i.qty]));
+  const rows=[];
+  for(const n of needs.values()){
+    const matches=findItems(n.key,n.x).filter(i=>(left.get(i.id)||0)>0);
+    if(n.nq){if(matches.length)continue;rows.push({...n,buy:null});continue;}
+    let need=n.q;
+    for(const i of matches.filter(i=>i.dim===n.d)){if(need<=1e-9)break;const t=Math.min(left.get(i.id),need);left.set(i.id,left.get(i.id)-t);need-=t;}
+    if(need<=1e-6)continue;
+    rows.push({...n,buy:niceQty(need,n.d),inStock:n.q-need>1e-6});
+  }
+  for(const r of rows){
+    if(r.buy==null){r.best=null;continue;}
+    const ps=pricesFor(r.key,r.d,r.x).map(s=>({...s,cost:s.p*r.buy})).sort((a,b)=>a.cost-b.cost);
+    r.offers=ps;r.best=ps[0]||null;r.avg=ps.length?ps.reduce((a,s)=>a+s.cost,0)/ps.length:null;
+  }
+  return rows;
+}
+function shopText(rows){
+  const groups=groupShop(rows);let t="🛒 Liste de courses KitchenChef\n";
+  for(const [store,list] of groups){t+="\n"+(store||"Sans prix connu")+"\n";for(const r of list)t+=(state.shopDone[r.k]?"☑ ":"☐ ")+r.name+(r.buy!=null?" — "+fmtQty(r.buy,r.d):"")+(r.best?" ("+money(r.best.cost)+")":"")+"\n";}
+  const tot=rows.reduce((a,r)=>a+(r.best?r.best.cost:0),0);if(tot)t+="\nTotal estimé : "+money(tot);
+  return t;
+}
+function groupShop(rows){
+  const g=new Map();
+  for(const r of rows){const s=r.best?r.best.store:"";if(!g.has(s))g.set(s,[]);g.get(s).push(r);}
+  return[...g.entries()].sort((a,b)=>(a[0]?0:1)-(b[0]?0:1)||b[1].length-a[1].length);
+}
+function renderShop(){
+  const recipes=allRecipes();
+  // recettes choisies
+  const chosen=Object.keys(state.plan).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
+  for(const id in state.plan)if(!recipes.some(r=>r.id===id))delete state.plan[id];
+  $("#shopChosen").innerHTML=chosen.length?chosen.map(r=>`<div class="pick-row on"><span style="font-size:22px">${esc(r.emoji||"🍽️")}</span><span class="grow">${esc(r.name)}</span>
+      <button class="step" data-pminus="${esc(r.id)}" aria-label="Moins">−</button><b style="min-width:26px;text-align:center">×${state.plan[r.id]}</b><button class="step" data-pplus="${esc(r.id)}" aria-label="Plus">+</button></div>`).join("")
+    :`<p class="small muted" style="margin:4px 0">Aucune recette choisie. Touchez « Choisir des recettes » ou le bouton 🛒 sur une fiche recette.</p>`;
+  updateShopBadge();
+  $("#shopPickBtn").textContent=shopPickOpen?"Fermer la liste des recettes":"➕ Choisir des recettes";
+  $("#shopPicker").hidden=!shopPickOpen;
+  if(shopPickOpen){
+    const q=keyOf(shopSearch);
+    const list=recipes.filter(r=>!q||keyOf(r.name).includes(q)||words(q).every(w=>keyOf(r.name).includes(w))).sort((a,b)=>a.name.localeCompare(b.name,"fr"));
+    $("#shopPickList").innerHTML=list.map(r=>{const on=!!plannedCount(r.id),c=CATS[recipeCat(r)];
+      return`<label class="pick-row${on?" on":""}"><input type="checkbox" data-pick="${esc(r.id)}"${on?" checked":""}><span style="font-size:20px">${esc(r.emoji||"🍽️")}</span><span class="grow">${esc(r.name)}<br><span class="small muted">${c.icon} ${c.one}${isHealthy(r)?" · 💚":""}${r.time?" · "+r.time+" min":""}</span></span></label>`;}).join("")||`<p class="small muted">Aucune recette trouvée.</p>`;
+  }
+  // liste
+  const rows=buildShopList();
+  const done=r=>!!state.shopDone[r.k];
+  const total=rows.reduce((a,r)=>a+(r.best?r.best.cost:0),0);
+  const totalAvg=rows.reduce((a,r)=>a+(r.avg!=null?r.avg:0),0);
+  const unknown=rows.filter(r=>!r.best).length;
+  $("#shopSummary").innerHTML=rows.length?`<div class="stat">
+      <div class="card"><b>${rows.length}</b><span class="small muted">article(s)</span></div>
+      <div class="card"><b>${total?money(total):"—"}</b><span class="small muted">au moins cher</span></div>
+      <div class="card"><b>${totalAvg?money(totalAvg):"—"}</b><span class="small muted">prix moyen</span></div></div>
+      ${totalAvg-total>0.05?`<p class="small" style="margin:-4px 0 10px;color:var(--accent)">💡 En suivant les enseignes conseillées, vous économisez environ ${money(totalAvg-total)} par rapport au prix moyen.</p>`:""}
+      ${unknown?`<p class="small muted" style="margin:-4px 0 10px">${unknown} article(s) sans prix enregistré : ils ne sont pas comptés dans le total.</p>`:""}`:"";
+  if(!rows.length){
+    $("#shopList").innerHTML=Object.keys(state.plan).length||state.shopExtra.length
+      ?`<div class="empty"><div class="big">✅</div><p>Vous avez déjà tout en stock !</p></div>`
+      :`<div class="empty"><div class="big">🛒</div><p>Choisissez des recettes : la liste se remplit toute seule, sans ce que vous avez déjà.</p></div>`;
+    $("#shopActions").hidden=!state.shopExtra.length&&!Object.keys(state.plan).length;return;}
+  $("#shopActions").hidden=false;
+  let html="";
+  for(const [store,list] of groupShop(rows)){
+    const sub=list.reduce((a,r)=>a+(r.best?r.best.cost:0),0);
+    html+=`<div class="zone-title">${store?"🏪 "+esc(store):"❔ Prix inconnu"} <span class="count">${list.length} article(s)${sub?" · "+money(sub):""}</span></div>`;
+    html+=list.sort((a,b)=>done(a)-done(b)||a.name.localeCompare(b.name,"fr")).map(r=>{
+      const other=r.offers&&r.offers.length>1?r.offers[r.offers.length-1]:null;
+      return`<label class="item shop-row${done(r)?" done":""}"><input type="checkbox" class="pchk" style="margin:0" data-done="${esc(r.k)}"${done(r)?" checked":""}>
+        <div class="grow"><div class="name" style="white-space:normal">${esc(r.name)}</div>
+          <div class="meta">${r.buy!=null?`<b style="color:var(--ink)">${fmtQty(r.buy,r.d)}</b>`:"quantité libre"}${r.inStock?" · complète votre stock":""} · ${[...r.from].join("")}</div></div>
+        <div style="text-align:right;flex:none">${r.best?`<div class="p" style="font-weight:700">${money(r.best.cost)}</div><div class="small muted">moy. ${money(r.avg)}</div>${other?`<div class="small" style="color:var(--warn)">${esc(other.store)} : ${money(other.cost)}</div>`:""}`:`<span class="small muted">—</span>`}</div></label>`;}).join("");
+  }
+  const extras=state.shopExtra.length?`<div class="small muted" style="margin-top:10px">Ajoutés à la main : ${state.shopExtra.map((e,i)=>`${esc(e.name)} <button class="x" data-xdel="${i}" aria-label="Retirer">×</button>`).join(" · ")}</div>`:"";
+  $("#shopList").innerHTML=html+extras;
+}
+function shopAddExtra(){
+  const v=$("#shopExtraIn").value.trim();if(!v)return;
+  for(const part of v.split(/\s*[,;]\s*|\n/)){if(!part)continue;const p=parseSegment(part.toLowerCase(),{store:null});
+    if(p.error)continue;state.shopExtra.push({name:cap(p.name),qty:p.explicit?p.qty:null,dim:p.dim});}
+  $("#shopExtraIn").value="";save();renderShop();
+}
+async function shopShare(){
+  const t=shopText(buildShopList());
+  try{if(navigator.share){await navigator.share({title:"Liste de courses",text:t});return;}}catch(e){if(e&&e.name==="AbortError")return;}
+  try{await navigator.clipboard.writeText(t);toast("📋 Liste copiée : collez-la dans Notes ou un message");}catch(e){prompt("Copiez la liste :",t);}
+}
+function shopToStock(){
+  const rows=buildShopList().filter(r=>state.shopDone[r.k]&&r.buy!=null);
+  if(!rows.length){toast("Cochez d'abord les articles achetés");return;}
+  if(!confirm("Ajouter au stock les "+rows.length+" article(s) cochés ?"))return;
+  for(const r of rows){applyAdd({name:r.name,qty:r.d==="u"?r.buy:r.buy,dim:r.d,expiry:null,unitPrice:null,basis:r.d,store:null});delete state.shopDone[r.k];}
+  save();renderAll();toast("✅ "+rows.length+" article(s) ajoutés au stock");
+}
+function shopClear(){
+  if(!confirm("Vider la liste (recettes choisies et articles ajoutés) ?"))return;
+  state.plan={};state.shopExtra=[];state.shopDone={};save();renderAll();
+}
+
 /* ---------- Divers ---------- */
 function renderStores(){
   const set=new Set();Object.values(state.prices).forEach(e=>Object.values(e.stores).forEach(s=>set.add(s.label)));
   $("#storeList").innerHTML=[...set].map(s=>`<option value="${esc(s)}">`).join("");
   if(!$("#mStore").value&&state.lastStore)$("#mStore").placeholder=state.lastStore;
 }
-function renderAll(){renderStock();renderPrices();renderRecipes();renderStores();}
+function renderAll(){renderStock();renderPrices();renderRecipes();renderStores();renderShop();}
+function updateShopBadge(){const n=Object.keys(state.plan).length;const b=$("#shopBadge");b.textContent=n;b.hidden=!n;}
 function fillZoneSelect(sel,withAuto){sel.innerHTML=(withAuto?'<option value="">Automatique</option>':"")+Object.entries(ZONES).map(([k,z])=>`<option value="${k}">${z.icon} ${z.label}</option>`).join("");}
 function toForm(q,d){if(d==="mass")return q<1?[+(q*1000).toFixed(1),"g"]:[+q.toFixed(3),"kg"];if(d==="vol")return q<1?[+(q*100).toFixed(1),"cl"]:[+q.toFixed(3),"L"];return[+q.toFixed(2),"u"];}
 
@@ -1615,6 +1788,7 @@ $("#priceSearch").addEventListener("input",renderPrices);
 $("#recipeChips").addEventListener("click",e=>{const b=e.target.closest("[data-rf]");if(!b)return;recipeFilter=b.dataset.rf;renderRecipes();});
 $("#recipeList").addEventListener("click",e=>{
   const c=e.target.closest("[data-cook]");if(c){cook(c.dataset.cook);return;}
+  const pl=e.target.closest("[data-plan]");if(pl){const on=!plannedCount(pl.dataset.plan);togglePlan(pl.dataset.plan,on);toast(on?"🛒 Ajoutée aux courses":"Retirée des courses");return;}
   const ed=e.target.closest("[data-redit]");if(ed){const r=allRecipes().find(x=>x.id===ed.dataset.redit);if(r)openRecipeDlg(r);return;}
   const dl=e.target.closest("[data-rdel]");if(dl)deleteRecipe(allRecipes().find(x=>x.id===dl.dataset.rdel));
 });
@@ -1682,6 +1856,23 @@ $("#mAdd").onclick=()=>{
     rec.start();on=true;btn.classList.add("on");
   };
 })();
+
+/* Courses */
+$("#shopPickBtn").onclick=()=>{shopPickOpen=!shopPickOpen;renderShop();};
+$("#shopSearchIn").addEventListener("input",e=>{shopSearch=e.target.value;renderShop();});
+$("#shopPickList").addEventListener("change",e=>{const b=e.target.closest("[data-pick]");if(b)togglePlan(b.dataset.pick,b.checked);});
+$("#shopChosen").addEventListener("click",e=>{
+  const p=e.target.closest("[data-pplus]"),m=e.target.closest("[data-pminus]");
+  if(p){state.plan[p.dataset.pplus]++;save();renderShop();}
+  if(m){const id=m.dataset.pminus;if(state.plan[id]>1)state.plan[id]--;else delete state.plan[id];save();renderShop();renderRecipes();}
+});
+$("#shopList").addEventListener("change",e=>{const b=e.target.closest("[data-done]");if(!b)return;if(b.checked)state.shopDone[b.dataset.done]=1;else delete state.shopDone[b.dataset.done];save();renderShop();});
+$("#shopList").addEventListener("click",e=>{const x=e.target.closest("[data-xdel]");if(!x)return;e.preventDefault();state.shopExtra.splice(+x.dataset.xdel,1);save();renderShop();});
+$("#shopExtraAdd").onclick=shopAddExtra;
+$("#shopExtraIn").addEventListener("keydown",e=>{if(e.key==="Enter")shopAddExtra();});
+$("#shopShare").onclick=shopShare;
+$("#shopToStock").onclick=shopToStock;
+$("#shopClear").onclick=shopClear;
 
 /* Scan */
 $("#scanBtn").onclick=openScanner;
