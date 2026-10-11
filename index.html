@@ -131,7 +131,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .scan-frame.watch::after{display:none}
 .scan-frame.steady{border-color:#ffd166;box-shadow:0 0 0 9999px rgba(0,0,0,.4),0 0 24px #ffd166}
 .sheet{position:absolute;left:0;right:0;bottom:0;z-index:2;background:var(--card);color:var(--ink);border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.35);max-height:78vh;overflow:auto;animation:sheetup .2s ease-out}
-.sheet[hidden],#sExtra[hidden],#sZone[hidden]{display:none}
+.sheet[hidden],#sExtra[hidden],#sZone[hidden],#sAlt[hidden]{display:none}
 @keyframes sheetup{from{transform:translateY(40px);opacity:0}}
 .linkbtn{border:0;background:none;color:var(--accent);font-weight:600;font-size:14px;cursor:pointer;padding:6px 0}
 dialog .inner{padding:18px}
@@ -161,7 +161,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
   <section class="view" id="view-add">
     <div class="card">
       <h2>📷 Scanner</h2>
-      <p class="muted small" style="margin:0 0 10px">Visez le code-barres : l'application reconnaît le produit et vous propose de l'ajouter, il suffit de valider. Mode « Sortie » pour retirer ce que vous consommez.</p>
+      <p class="muted small" style="margin:0 0 10px">Visez le code-barres, ou montrez simplement le produit avec 👁️ Auto : l'application le reconnaît et vous propose de l'ajouter, il suffit de valider. 100 % gratuit.</p>
       <button class="btn block" id="scanBtn">📷 Lancer le scan</button>
       <button class="btn secondary block" id="visionBtn" style="margin-top:8px">👁️ Reconnaissance visuelle (sans code-barres)</button>
       <div class="row" style="gap:8px;margin-top:10px">
@@ -237,7 +237,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
   <div class="menu-list">
     <button id="exportBtn">💾 Exporter une sauvegarde</button>
     <button id="importBtn">📂 Importer une sauvegarde</button>
-    <button id="codeBtn">🔑 Code d'accès photo</button>
+    <button id="codeBtn">🔑 Reconnaissance avancée (facultatif)</button>
     <button id="demoBtn">🧪 Charger des données d'exemple</button>
     <button id="resetBtn" style="color:var(--danger)">🗑️ Tout effacer</button>
     <button id="closeMenu">Fermer</button>
@@ -348,6 +348,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
       </div>
       <label for="sStore">Magasin (si prix)</label><input class="field" id="sStore" list="storeList" placeholder="ex. Lidl">
     </div>
+    <div class="chips" id="sAlt" hidden style="margin-top:8px;flex-wrap:wrap;align-items:center"></div>
     <div class="small muted" id="sInfo" style="margin-top:8px"></div>
     <div class="row" style="margin-top:12px">
       <button class="btn secondary grow" id="sSkip">Ignorer</button>
@@ -355,6 +356,22 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
     </div>
   </div>
 </div>
+
+<dialog id="aiDlg"><div class="inner">
+  <h2>🔑 Reconnaissance avancée (facultatif)</h2>
+  <p class="small muted" style="margin:0">Tout fonctionne <b>gratuitement</b> sans rien régler ici. Option payante (≈ 1 ct par photo) pour une reconnaissance plus précise, notamment la photo du frigo entier : collez une clé API Anthropic. Laissez vide pour rester 100 % gratuit.</p>
+  <label for="aiKey">Clé API</label>
+  <input class="field" id="aiKey" type="password" placeholder="sk-ant-…" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <label for="aiModel">Modèle</label>
+  <select class="field" id="aiModel"><option value="claude-sonnet-5-5">Sonnet 5.5 — le plus précis (≈ 1 ct / photo)</option><option value="claude-haiku-5-5">Haiku 5.5 — économique</option></select>
+  <div id="aiStatus" class="small" style="margin-top:12px"></div>
+  <div class="row" style="margin-top:14px">
+    <button class="btn secondary" id="aiTest">Tester</button>
+    <span class="grow"></span>
+    <button class="btn secondary" id="aiClose">Fermer</button>
+    <button class="btn" id="aiSave">Enregistrer</button>
+  </div>
+</div></dialog>
 
 <div id="toast"></div>
 
@@ -804,7 +821,7 @@ async function readRecipePhoto(file){
   const status=$("#rOcr");
   try{
     const thumb=await shrinkImage(file,360);recipeImg=thumb.toDataURL("image/jpeg",.7);$("#rImg").src=recipeImg;$("#rImg").hidden=false;
-    try{
+    if(getKey())try{
       status.textContent="⏳ Analyse de la photo…";
       const {data}=await callVision("recipe",file);
       const p={name:data.name||"",emoji:"",time:parseInt(data.time_minutes,10)||null,ing:Array.isArray(data.ingredients)?data.ingredients:[],steps:Array.isArray(data.steps)?data.steps:[]};
@@ -827,24 +844,100 @@ async function readRecipePhoto(file){
 /* ---------- Photos : frigo, placard, ticket (analyse par Claude via /api/vision) ---------- */
 const CODE_KEY="kitchenchef_code";
 const getCode=()=>{try{return localStorage.getItem(CODE_KEY)||"";}catch(e){return"";}};
+const AI_PROMPTS = {
+  fridge: `Tu es un assistant d'inventaire alimentaire. Liste chaque produit alimentaire distinct visible sur cette photo (frigo, congélateur ou placard).
+Règles :
+- Noms courts en français courant (ex. "Lait demi-écrémé", "Yaourts nature", "Beurre doux", "Carottes").
+- Quantité : compte les unités visibles. Si l'étiquette d'un emballage est lisible (500 g, 1 L…), donne ce poids ou volume. Sinon, donne un nombre d'unités ("u").
+- confidence = "unsure" si le produit est partiellement caché, si l'identification est douteuse ou si la quantité est une estimation grossière.
+- zone : "frigo", "congel", "sale" (épicerie salée) ou "sucre" (épicerie sucrée), d'après le contexte de la photo et le produit.
+- Ignore les objets non alimentaires et les contenants vides.
+Réponds UNIQUEMENT avec ce JSON, sans texte autour :
+{"items":[{"name":"","quantity":1,"unit":"u|g|kg|ml|cl|L","zone":"frigo|congel|sale|sucre","confidence":"sure|unsure","note":""}]}`,
+
+  receipt: `Tu lis un ticket de caisse français. Extrais l'enseigne et chaque produit alimentaire acheté.
+Règles :
+- Noms courts et lisibles en français (développe les abréviations : "LAIT DEMI ECR 1L" → "Lait demi-écrémé").
+- quantity/unit : contenance réelle si elle figure (1 L, 500 g…) multipliée par le nombre d'articles ; sinon nombre d'articles en "u". Pour les produits au poids, utilise le poids indiqué en kg.
+- total_price : prix total payé pour la ligne, en euros (nombre). Tient compte des remises indiquées sur la ligne suivante.
+- zone : "frigo", "congel", "sale" ou "sucre".
+- confidence = "unsure" si la ligne est peu lisible.
+- Ignore les produits non alimentaires, les sous-totaux, la TVA, les moyens de paiement.
+Réponds UNIQUEMENT avec ce JSON, sans texte autour :
+{"store":"","items":[{"name":"","quantity":1,"unit":"u|g|kg|ml|cl|L","total_price":0,"zone":"frigo|congel|sale|sucre","confidence":"sure|unsure"}]}`,
+
+  product: `Identifie le produit alimentaire principal montré au centre de l'image (tenu en main, posé, emballé ou en vrac). S'il y en a plusieurs identiques, compte-les.
+- name : nom court en français courant. Si l'emballage est lisible, utilise le vrai nom du produit (ex. "Nutella", "Yaourt nature Danone", "Camembert"), sinon un nom générique ("Pommes Gala", "Courgettes").
+- brand : marque si lisible, sinon "".
+- quantity/unit : contenance lisible sur l'étiquette (500 g, 1 L…) ou nombre d'unités visibles en "u".
+- zone : "frigo", "congel", "sale" (épicerie salée) ou "sucre" (épicerie sucrée).
+- confidence = "unsure" si tu hésites.
+- Si aucun produit alimentaire n'est clairement visible (pièce vide, image floue, main seule…), renvoie name "".
+Réponds UNIQUEMENT avec ce JSON, sans texte autour :
+{"name":"","brand":"","quantity":1,"unit":"u|g|kg|ml|cl|L","zone":"frigo|congel|sale|sucre","confidence":"sure|unsure"}`,
+
+  recipe: `Transcris la recette visible sur cette photo (imprimée ou manuscrite), en français.
+Réponds UNIQUEMENT avec ce JSON, sans texte autour :
+{"name":"","time_minutes":null,"ingredients":["250 g de farine","3 œufs"],"steps":["Étape 1…","Étape 2…"]}
+Les ingrédients doivent commencer par la quantité quand elle existe.`
+};
+const KEY_KEY="kitchenchef_apikey",MODEL_KEY="kitchenchef_model";
+const lsGet=k=>{try{return localStorage.getItem(k)||"";}catch(e){return"";}};
+const lsSet=(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k);}catch(e){}};
+const getKey=()=>lsGet(KEY_KEY).trim();
+const getModel=()=>lsGet(MODEL_KEY)||"claude-sonnet-5-5";
 function openCodeDlg(){
-  const c=prompt("Code d'accès de la reconnaissance photo (celui défini dans Cloudflare, variable ACCESS_CODE) :",getCode());
-  if(c===null)return;
-  try{localStorage.setItem(CODE_KEY,c.trim());toast("🔑 Code enregistré");}catch(e){toast("Impossible d'enregistrer le code");}
+  $("#aiKey").value=getKey();$("#aiModel").value=getModel();$("#aiStatus").textContent="";
+  $("#aiDlg").showModal();
+}
+function saveAiSettings(){
+  const k=$("#aiKey").value.trim();
+  if(k&&!/^sk-ant-/.test(k)){$("#aiStatus").textContent="⚠️ Une clé Anthropic commence par « sk-ant- ».";return false;}
+  lsSet(KEY_KEY,k);lsSet(MODEL_KEY,$("#aiModel").value);
+  vis.ok=null;return true;
+}
+async function testAi(){
+  if(!saveAiSettings())return;
+  const st=$("#aiStatus");st.textContent="⏳ Test en cours…";
+  if(getKey()){
+    try{
+      const r=await fetch("https://api.anthropic.com/v1/models?limit=1",{headers:{"x-api-key":getKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}});
+      st.textContent=r.ok?"✅ Clé valide : la reconnaissance photo est prête.":r.status===401?"❌ Clé refusée : vérifiez qu'elle est complète.":"⚠️ Réponse inattendue ("+r.status+").";
+    }catch(e){st.textContent="⚠️ Pas de connexion internet.";}
+    return;
+  }
+  st.textContent="✅ Mode gratuit actif : la reconnaissance se fait sur le téléphone. (Collez une clé seulement si vous voulez l'option payante.)";
+}
+function parseAiJson(text){
+  const m=String(text||"").match(/\{[\s\S]*\}/);
+  if(!m)throw new Error("Réponse illisible, réessayez.");
+  try{return JSON.parse(m[0]);}catch(e){throw new Error("Réponse illisible, réessayez.");}
+}
+async function callDirect(mode,image){
+  let res;
+  try{
+    res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+      headers:{"content-type":"application/json","x-api-key":getKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:getModel(),max_tokens:2000,messages:[{role:"user",content:[
+        {type:"image",source:{type:"base64",media_type:"image/jpeg",data:image.replace(/^data:image\/\w+;base64,/,"")}},
+        {type:"text",text:AI_PROMPTS[mode]}]}]})});
+  }catch(e){throw new Error("Pas de connexion internet.");}
+  if(res.status===401||res.status===403)throw Object.assign(new Error("Clé API refusée."),{code:true});
+  if(!res.ok){
+    let msg="";try{msg=((await res.json()).error||{}).message||"";}catch(e){}
+    if(/credit|balance|billing/i.test(msg))throw new Error("Crédit API épuisé : rechargez sur console.anthropic.com.");
+    if(res.status===429)throw new Error("Trop de demandes d'un coup, patientez quelques secondes.");
+    throw new Error("L'analyse a échoué ("+res.status+").");
+  }
+  const d=await res.json();
+  return parseAiJson((d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(""));
 }
 async function callVision(mode,file){
   const big=await shrinkImage(file,1568);
   const image=big.toDataURL("image/jpeg",.82);
-  let res;
-  try{res=await fetch("/api/vision",{method:"POST",headers:{"content-type":"application/json","x-access-code":getCode()},body:JSON.stringify({mode,image})});}
-  catch(e){throw new Error("Pas de connexion internet.");}
-  let data={};try{data=await res.json();}catch(e){}
-  if(res.status===404||res.status===405)throw new Error("La reconnaissance photo n'est pas installée sur ce site (dossier « functions » absent du dépôt GitHub).");
-  if(data.error==="not_configured")throw new Error("Clé API manquante : ajoutez ANTHROPIC_API_KEY dans les réglages Cloudflare.");
-  if(data.error==="bad_code")throw Object.assign(new Error("Code d'accès incorrect ou manquant."),{code:true});
-  if(data.error==="too_large")throw new Error("Photo trop lourde.");
-  if(!res.ok||data.error)throw new Error("L'analyse a échoué ("+(data.status||res.status)+"). Réessayez avec une photo plus nette.");
-  return{data,thumb:(await shrinkImage(file,360)).toDataURL("image/jpeg",.7)};
+  const thumb=()=>shrinkImage(file,360).then(c=>c.toDataURL("image/jpeg",.7));
+  if(!getKey())throw new Error("Option avancée non activée.");
+  return{data:await callDirect(mode,image),thumb:await thumb()};
 }
 
 let photoMode="fridge";
@@ -907,6 +1000,27 @@ function openPhotoDlg(rows,store,thumb){
 }
 async function analysePhotos(files){
   const st=$("#photoStatus");let rows=[],store="",thumb=null,lastErr=null;
+  if(!getKey()){ // mode gratuit, sur le téléphone
+    for(let k=0;k<files.length;k++){
+      st.textContent=photoMode==="receipt"
+        ?`⏳ Lecture du ticket ${k+1}/${files.length}… (sur le téléphone, 10 à 30 s)`
+        :`⏳ Analyse de la photo ${k+1}/${files.length}… (sur le téléphone)`;
+      try{
+        thumb=thumb||(await shrinkImage(files[k],360)).toDataURL("image/jpeg",.7);
+        if(photoMode==="receipt"){const r=await freeReceipt(files[k]);if(r.store&&!store)store=r.store;rows.push(...r.rows);}
+        else rows.push(...await freeFridge(files[k]));
+      }catch(e){lastErr=new Error("connexion internet nécessaire la première fois pour charger la reconnaissance.");}
+    }
+    if(lastErr&&!rows.length){st.textContent="⚠️ Analyse impossible : "+lastErr.message;return;}
+    rows=mergeRows(rows);
+    if(!rows.length){
+      st.textContent=photoMode==="receipt"
+        ?"Ticket illisible. Prenez-le bien à plat, en entier et éclairé."
+        :"Rien de reconnu sur cette photo. Le plus fiable (et gratuit) : 📷 Scanner avec 👁️ Auto, produit par produit.";
+      return;}
+    st.textContent=photoMode==="fridge"?"La photo entière reconnaît surtout fruits et légumes. Pour le reste : 📷 Scanner.":"";
+    openPhotoDlg(rows,store,thumb);return;
+  }
   for(let k=0;k<files.length;k++){
     st.textContent=`⏳ Analyse de la photo ${k+1}/${files.length}… (quelques secondes)`;
     try{
@@ -1049,8 +1163,9 @@ function frameSig(v){
 }
 function sigDiff(a,b){if(!a||!b)return 255;let s=0;for(let i=0;i<a.length;i++)s+=Math.abs(a[i]-b[i]);return s/a.length;}
 async function visionReady(){
+  if(getKey())return true;
   if(vis.ok!==null)return vis.ok;
-  try{const r=await fetch("/api/vision");const d=await r.json();vis.ok=!!d.configured;}catch(e){vis.ok=false;}
+  try{const r=await fetch("/api/vision",{cache:"no-store"});const d=await r.json();vis.ok=!!d.configured;}catch(e){vis.ok=false;}
   return vis.ok;
 }
 function setAuto(on){
@@ -1061,9 +1176,12 @@ function setAuto(on){
 }
 async function toggleAuto(){
   if(scan.auto){setAuto(false);return;}
-  setHint("Vérification de la reconnaissance visuelle…");
-  if(!(await visionReady())){setAuto(false);setHint("La reconnaissance visuelle demande la clé API dans Cloudflare (voir la notice). Le scan des codes-barres reste disponible.");return;}
   setAuto(true);
+  if(!getKey()&&!mnModel){
+    setHint("⏳ Chargement de la reconnaissance (une seule fois, ~15 Mo)…");scan.busy=true;
+    try{await getMobileNet();scan.busy=false;idleHint();}
+    catch(e){scan.busy=false;setAuto(false);setHint("Reconnaissance indisponible : connexion internet nécessaire la première fois.");}
+  }
 }
 function autoTick(v){
   const g=frameSig(v),moving=sigDiff(g,vis.prev)>6;vis.prev=g;
@@ -1073,8 +1191,8 @@ function autoTick(v){
   if(vis.stable===2&&sigDiff(g,vis.lastSent)>12)setHint("Ne bougez plus…");
   if(vis.stable<AUTO_STABLE)return;
   if(sigDiff(g,vis.lastSent)<=12){vis.stable=0;return;} // même scène qu'à l'instant : on n'envoie pas deux fois
-  if(Date.now()-vis.lastCall<2500)return;
-  if(vis.calls>=AUTO_MAX_CALLS){setAuto(false);setHint("Pause de la reconnaissance auto (limite atteinte). Utilisez « Analyser » ou rouvrez le scan.");return;}
+  if(Date.now()-vis.lastCall<(getKey()?2500:1500))return;
+  if(getKey()&&vis.calls>=AUTO_MAX_CALLS){setAuto(false);setHint("Pause de la reconnaissance auto (limite atteinte). Utilisez « Analyser » ou rouvrez le scan.");return;}
   vis.lastSent=g;vis.stable=0;vis.lastCall=Date.now();vis.calls++;fr.classList.add("steady");
   scanWithoutCode(true);
 }
@@ -1146,7 +1264,10 @@ async function onCode(code){
 function showProposal(p){
   scan.cur=p;const out=scan.mode==="out";
   $("#sImg").hidden=!p.img;if(p.img)$("#sImg").src=p.img;
-  $("#sSub").textContent=p.unknown?(p.code?"Code "+p.code+" inconnu : donnez un nom, il sera mémorisé.":"Indiquez le produit."):[p.brand,p.unsure?"⚠️ à vérifier":"",p.code?"EAN "+p.code:"📷 reconnu sur photo"].filter(Boolean).join(" · ");
+  $("#sSub").textContent=p.unknown?(p.code?"Code "+p.code+" inconnu : donnez un nom, il sera mémorisé.":"Indiquez le produit."):[p.brand,p.via?"reconnu par "+p.via:(p.code?"EAN "+p.code:"📷 reconnu sur photo"),p.unsure?"⚠️ à vérifier":""].filter(Boolean).join(" · ");
+  const alts=(p.alts||[]).filter(a=>a&&a.name&&a.name!==p.name).slice(0,4);
+  $("#sAlt").innerHTML=alts.length?'<span class="small muted">Ou :</span> '+alts.map((a,i)=>`<button class="chip" data-alt="${i}">${esc(a.name)}</button>`).join(""):"";
+  $("#sAlt").hidden=!alts.length;scan.alts=alts;
   $("#sName").value=p.name||"";$("#sQty").value=out&&p.unit==="u"?1:(p.size||1);/* sortie : 1 yaourt, pas tout le pack */$("#sUnit").value=FORM_UNITS[p.unit]?p.unit:"u";$("#sZone").value=ZONES[p.zone]?p.zone:"frigo";
   scan.count=1;$("#sCount").textContent="1";
   $("#sExtra").hidden=out;$("#sZone").hidden=out;
@@ -1185,6 +1306,18 @@ async function scanWithoutCode(silent){
   if(!scan.stream||v.readyState<2){if(!silent)showProposal({name:"",size:1,unit:"u",zone:"frigo",unknown:true});return;}
   scan.busy=true;setHint("🔍 Je regarde ce produit…");
   const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);
+  if(!getKey()){
+    let p=null;try{p=await freeRecognize(c);}catch(e){}
+    if($("#scanner").hidden)return;
+    $(".scan-frame").classList.remove("steady");
+    if(!p){
+      scan.busy=false;
+      if(silent){setHint("Pas reconnu : rapprochez le produit, étiquette ou code-barres face à la caméra.");return;}
+      showProposal({name:"",size:1,unit:"u",zone:"frigo",unknown:true});$("#sSub").textContent="Produit non reconnu : saisissez-le.";return;
+    }
+    try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}
+    showProposal(p);return;
+  }
   try{
     const blob=await new Promise(res=>c.toBlob(res,"image/jpeg",.85));
     const {data}=await callVision("product",blob);
@@ -1204,6 +1337,140 @@ async function scanWithoutCode(silent){
     $("#sSub").textContent="⚠️ "+err.message+" Saisissez le produit à la main.";
     if(err.code)openCodeDlg();
   }
+}
+
+/* ---------- Reconnaissance GRATUITE, sur le téléphone (aucune clé, aucun compte) ----------
+   1) Image → modèle MobileNet (fruits, légumes, pain, plats…)
+   2) Sinon → lecture de l'étiquette (Tesseract) → recherche Open Food Facts */
+const TFJS_URL="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js";
+const MOBILENET_URL="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js";
+const MOBILENET_MODEL="https://storage.googleapis.com/tfjs-models/savedmodel/mobilenet_v2_1.0_224/model.json";
+const FOOD={
+  "banana":"Bananes","granny smith":"Pommes","orange":"Oranges","lemon":"Citrons","strawberry":"Fraises","pineapple":"Ananas",
+  "pomegranate":"Grenades","fig":"Figues","custard apple":"Anone","jackfruit":"Jacquier","broccoli":"Brocoli","cauliflower":"Chou-fleur",
+  "zucchini":"Courgettes","cucumber":"Concombre","bell pepper":"Poivrons","mushroom":"Champignons","agaric":"Champignons",
+  "artichoke":"Artichauts","head cabbage":"Chou","corn":"Maïs","ear":"Épis de maïs","acorn squash":"Courge","butternut squash":"Butternut",
+  "spaghetti squash":"Courge spaghetti","bagel":"Bagels","pretzel":"Bretzels","french loaf":"Baguette","hotdog":"Hot-dogs",
+  "cheeseburger":"Burger","pizza":"Pizza","burrito":"Burrito","ice cream":"Glace","ice lolly":"Glaces à l'eau","guacamole":"Guacamole",
+  "carbonara":"Pâtes carbonara","potpie":"Tourte","meat loaf":"Pain de viande","trifle":"Dessert","chocolate sauce":"Sauce chocolat",
+  "dough":"Pâte","mashed potato":"Purée","espresso":"Café","red wine":"Vin rouge","eggnog":"Lait de poule","consomme":"Bouillon",
+  "hot pot":"Pot-au-feu","wine bottle":"Vin","beer bottle":"Bière","pop bottle":"Soda","water bottle":"Eau","milk can":"Lait",
+  "honeycomb":"Miel","plum":"Prunes","pear":"Poires","apple":"Pommes"
+};
+const scriptCache={};
+function loadScript(src){
+  return scriptCache[src]||(scriptCache[src]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.async=true;s.onload=res;s.onerror=()=>{delete scriptCache[src];rej(new Error("load"));};document.head.appendChild(s);}));
+}
+let mnModel=null,mnLoading=null,ocrWorker=null,ocrLoading=null;
+function getMobileNet(){
+  if(mnModel)return Promise.resolve(mnModel);
+  if(!mnLoading)mnLoading=(async()=>{
+    await loadScript(TFJS_URL);await loadScript(MOBILENET_URL);
+    mnModel=await window.mobilenet.load({version:2,alpha:1.0,modelUrl:MOBILENET_MODEL,inputRange:[0,1]});
+    return mnModel;
+  })().catch(e=>{mnLoading=null;throw e;});
+  return mnLoading;
+}
+function getOcr(){
+  if(ocrWorker)return Promise.resolve(ocrWorker);
+  if(!ocrLoading)ocrLoading=(async()=>{await loadTesseract();ocrWorker=await window.Tesseract.createWorker("fra");return ocrWorker;})().catch(e=>{ocrLoading=null;throw e;});
+  return ocrLoading;
+}
+function foodFromPreds(preds,minProb){
+  const out=[];
+  for(const p of preds||[]){
+    const k=String(p.className||"").toLowerCase().split(",")[0].trim();const fr=FOOD[k];
+    if(fr&&p.probability>=minProb&&!out.some(o=>o.name===fr))out.push({name:fr,size:1,unit:"u",zone:classify(fr),prob:p.probability});
+  }
+  return out;
+}
+async function classifyFood(canvas){const m=await getMobileNet();return foodFromPreds(await m.classify(canvas,5),.12);}
+async function labelWords(canvas){
+  const w=await getOcr();
+  const c=document.createElement("canvas");const cw=Math.round(canvas.width*.86),ch=Math.round(canvas.height*.62);
+  c.width=cw;c.height=ch;c.getContext("2d").drawImage(canvas,(canvas.width-cw)/2,(canvas.height-ch)/2,cw,ch,0,0,cw,ch);
+  const {data}=await w.recognize(c);
+  const STOPW=/^(les|des|une|pour|avec|sans|aux|est|par|dans|sur|net|poids|ingredients?|ingrédients|valeurs?|nutri|score|lot|exp|dlc|ddm|kcal|kj)$/i;
+  const ws=(data&&data.words||[]).filter(x=>x.confidence>=70).map(x=>String(x.text).replace(/[^A-Za-zÀ-ÿ'-]/g,"")).filter(t=>t.length>=3&&!STOPW.test(t));
+  return[...new Set(ws.map(x=>x.toLowerCase()))].sort((a,b)=>b.length-a.length).slice(0,4);
+}
+async function offSearch(words){
+  if(!words.length)return[];
+  try{
+    const r=await fetch("https://world.openfoodfacts.org/cgi/search.pl?search_terms="+encodeURIComponent(words.join(" "))+"&search_simple=1&action=process&json=1&page_size=5&sort_by=unique_scans_n&fields=code,product_name,product_name_fr,brands,quantity,product_quantity,product_quantity_unit,categories_tags,image_front_small_url");
+    if(!r.ok)return[];
+    const d=await r.json();
+    return(d.products||[]).map(pr=>{
+      const name=String(pr.product_name_fr||pr.product_name||"").trim();if(!name)return null;
+      const {size,unit}=parseOffQty(pr);
+      return{name:cap(name),brand:String(pr.brands||"").split(",")[0].trim(),size,unit,zone:zoneFromCats(pr.categories_tags,name),img:pr.image_front_small_url||null,code:pr.code||null};
+    }).filter(Boolean).slice(0,4);
+  }catch(e){return[];}
+}
+async function freeRecognize(canvas){
+  setHint(mnModel?"🔍 Je regarde ce produit…":"⏳ Chargement de la reconnaissance (une seule fois, ~15 Mo)…");
+  let foods=[];try{foods=await classifyFood(canvas);}catch(e){}
+  if(foods.length&&foods[0].prob>=.3)return{...foods[0],unsure:foods[0].prob<.6,via:"vue",alts:foods.slice(1)};
+  setHint(ocrWorker?"🔍 Je lis l'étiquette…":"⏳ Chargement de la lecture d'étiquettes (une seule fois)…");
+  let words=[];try{words=await labelWords(canvas);}catch(e){}
+  const found=await offSearch(words);
+  if(found.length)return{...found[0],unsure:true,via:"l'étiquette « "+words.slice(0,3).join(" ")+" »",alts:found.slice(1).concat(foods)};
+  if(foods.length)return{...foods[0],unsure:true,via:"vue",alts:foods.slice(1)};
+  return null;
+}
+
+/* Ticket de caisse gratuit : lecture du texte puis découpage des lignes */
+const STORES=["lidl","carrefour","auchan","leclerc","intermarche","monoprix","franprix","casino","aldi","netto","super u","hyper u","u express","systeme u","grand frais","picard","biocoop","cora","match","spar","naturalia","la vie claire","g20","colruyt","leader price"];
+function parseReceipt(text){
+  const lines=String(text||"").split(/\n/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);
+  let store="";
+  for(const l of lines.slice(0,10)){const n=" "+normalize(l)+" ";const f=STORES.find(s=>n.includes(" "+s));if(f){store=f==="intermarche"?"Intermarché":f.split(" ").map(cap).join(" ");break;}}
+  const SKIP=/(total|sous[- ]?tot|t\.?v\.?a|carte|\bcb\b|esp[eè]ces|rendu|monnaie|ticket|merci|caisse|net [aà] payer|[aà] payer|articles?\b|montant|taux|\bht\b|ttc|visa|mastercard|paiement|solde|points?\b|fid[ée]lit|siret|t[ée]l[ée]phone|www|horaire|vendeur|transaction|contact|cagnott|remise|avantage|bon d'achat|\bsacs?\b|cabas|consigne)/i;
+  const rows=[];let prev=null;
+  for(const l of lines){
+    const m=l.match(/^(.*?)\s*(-?\d{1,4}[.,]\d{2})\s*(?:€|eur)?\s*[A-Z0-9]?\s*$/i);
+    if(!m)continue;
+    let name=m[1].trim();const price=parseFloat(m[2].replace(",","."));
+    const mul=name.match(/^(\d+)\s*[x×*]\s*(\d+[.,]\d{2})?\s*(?:€)?\s*$/i);
+    if(mul&&prev){const n=+mul[1];prev.qty=prev.unit==="u"?n:+(prev.qty*n).toFixed(3);prev.price=price;continue;}
+    if(price<0&&prev){prev.price=Math.max(0,+((prev.price||0)+price).toFixed(2));continue;}
+    if(SKIP.test(name)||name.replace(/[^a-zà-ÿ]/gi,"").length<3)continue;
+    let qty=1,unit="u";
+    const w=name.match(/(\d+[.,]\d{3})\s*kg/i),q=name.match(/(\d+(?:[.,]\d+)?)\s*(kg|gr|g|cl|ml|l)\b/i);
+    const pack=name.match(/\bx\s?(\d{1,2})\b/i);
+    if(w){qty=parseFloat(w[1].replace(",","."));unit="kg";}
+    else if(pack){qty=+pack[1];unit="u";name=name.replace(pack[0]," ");}
+    else if(q){qty=parseFloat(q[1].replace(",","."));const u=q[2].toLowerCase();unit=u==="gr"?"g":u==="l"?"L":u;}
+    name=name.replace(/\d+[.,]\d{3}\s*kg.*$/i,"").replace(/\b\d+(?:[.,]\d+)?\s*(kg|gr|g|cl|ml|l)\b/ig,"").replace(/^\d+\s+/,"").replace(/[*#_|]+/g," ").replace(/\s+/g," ").trim();
+    if(name.replace(/[^a-zà-ÿ]/gi,"").length<3)continue;
+    const nice=cap(name.toLowerCase());
+    const row={name:nice,qty,unit,zone:classify(nice),price:price>0?price:null,unsure:true,note:"lu sur le ticket, vérifiez le nom",on:true};
+    rows.push(row);prev=row;
+  }
+  return{store,rows};
+}
+async function freeReceipt(file){
+  const w=await getOcr();
+  const big=await shrinkImage(file,2000);
+  const {data}=await w.recognize(big);
+  return parseReceipt(data&&data.text);
+}
+/* Photo du frigo gratuite : on découpe l'image en zones et on reconnaît fruits/légumes/aliments visibles */
+async function freeFridge(file){
+  const m=await getMobileNet();
+  const big=await shrinkImage(file,1200);
+  const tiles=[[0,0,1,1]];
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++)tiles.push([c/3,r/3,1/3,1/3]);
+  for(let r=0;r<2;r++)for(let c=0;c<2;c++)tiles.push([c/2,r/2,1/2,1/2]);
+  const found=new Map();
+  for(const [x,y,w,h] of tiles){
+    const t=document.createElement("canvas");t.width=224;t.height=224;
+    t.getContext("2d").drawImage(big,x*big.width,y*big.height,w*big.width,h*big.height,0,0,224,224);
+    for(const f of foodFromPreds(await m.classify(t,3),.35)){
+      if(!found.has(f.name))found.set(f.name,{name:f.name,qty:1,unit:"u",zone:f.zone,price:null,unsure:true,note:"estimation, vérifiez le nombre",on:true});
+    }
+  }
+  return[...found.values()];
 }
 
 /* ---------- Divers ---------- */
@@ -1305,6 +1572,8 @@ $("#scanNoCode").onclick=()=>scanWithoutCode(false);
 $("#scanAuto").onclick=toggleAuto;
 $("#visionBtn").onclick=async()=>{await openScanner();if(!scan.auto)toggleAuto();};
 $("#sSkip").onclick=hideSheet;
+$("#sAlt").addEventListener("click",e=>{const b=e.target.closest("[data-alt]");if(!b||!scan.cur)return;const cur=scan.cur;const a=scan.alts[+b.dataset.alt];
+  showProposal({...a,via:cur.via,unsure:true,alts:[cur,...scan.alts.filter(x=>x!==a)]});});
 $("#sOk").onclick=confirmProposal;
 $("#sName").addEventListener("input",updateStockInfo);
 $("#sPlus").onclick=()=>{scan.count++;$("#sCount").textContent=scan.count;};
@@ -1319,6 +1588,9 @@ $("#pAddRow").onclick=()=>{collectRows();photoRows.push({name:"",qty:1,unit:"u",
 $("#pCancel").onclick=()=>$("#photoDlg").close();
 $("#pApply").onclick=applyPhotoRows;
 $("#codeBtn").onclick=()=>{$("#menuDlg").close();openCodeDlg();};
+$("#aiTest").onclick=testAi;
+$("#aiClose").onclick=()=>$("#aiDlg").close();
+$("#aiSave").onclick=()=>{if(saveAiSettings()){$("#aiDlg").close();toast(getKey()?"🔑 Clé enregistrée sur ce téléphone":"Réglages enregistrés");if(!$("#scanner").hidden&&getKey()&&!scan.auto)setAuto(true);}};
 
 /* Menu */
 $("#menuBtn").onclick=()=>$("#menuDlg").showModal();
