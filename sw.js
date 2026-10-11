@@ -1,5 +1,5 @@
 // Service worker : fonctionnement hors ligne (réseau d'abord, cache en secours)
-const CACHE = "kitchenchef-v10";
+const CACHE = "kitchenchef-v11";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
