@@ -1093,7 +1093,7 @@ function applyPhotoRows(){
 }
 
 /* ---------- Scan en direct : code-barres → Open Food Facts → proposition à valider ---------- */
-const scan={stream:null,detector:null,timer:null,mode:"in",busy:false,last:"",lastAt:0,cur:null,count:1,n:0};
+const scan={stream:null,detector:null,timer:null,mode:"in",busy:false,visBusy:false,visToken:0,lastBarcodeSeen:0,tick:0,last:"",lastAt:0,cur:null,count:1,n:0};
 const BD_URL="https://cdn.jsdelivr.net/npm/barcode-detector@2.3.1/dist/es/pure.js/+esm";
 const BC_FORMATS=["ean_13","ean_8","upc_a","upc_e"];
 function setHint(t){$("#scanHint").textContent=t||"";}
@@ -1106,7 +1106,7 @@ async function getDetector(){
   return new mod.BarcodeDetector({formats:BC_FORMATS});
 }
 /* Caméra : démarrage robuste (choix du capteur, relance si image noire, messages clairs) */
-const CAM_KEY="kitchenchef_cam";
+const CAM_KEY="kitchenchef_cam2"; // nouvelle clé : on oublie la caméra mémorisée par les versions précédentes
 function camError(e){
   const n=e&&e.name||"";
   if(n==="NotAllowedError"||n==="SecurityError")return window.self!==window.top
@@ -1127,11 +1127,19 @@ async function attachStream(stream){
   try{await v.play();}catch(e){}
   return v.videoWidth>0;
 }
+async function tuneTrack(tr){
+  if(!tr||!tr.getCapabilities)return;
+  let cap={};try{cap=tr.getCapabilities()||{};}catch(e){return;}
+  const adv={};
+  if(Array.isArray(cap.focusMode)&&cap.focusMode.includes("continuous"))adv.focusMode="continuous";
+  if(cap.zoom&&cap.zoom.max>=1.6&&cap.zoom.min<=1.6)adv.zoom=1.6; // permet de tenir le produit un peu plus loin = net
+  if(Object.keys(adv).length){try{await tr.applyConstraints({advanced:[adv]});}catch(e){}}
+}
 async function startCamera(deviceId){
   stopStream();
   const tries=deviceId
     ?[{video:{deviceId:{exact:deviceId}},audio:false}]
-    :[{video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false},
+    :[{video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false},
       {video:{facingMode:"environment"},audio:false},
       {video:true,audio:false}];
   let lastErr=null;
@@ -1141,7 +1149,7 @@ async function startCamera(deviceId){
       scan.stream=st;
       if(await attachStream(st)){
         const tr=st.getVideoTracks()[0];scan.camId=tr&&tr.getSettings?tr.getSettings().deviceId:null;
-        try{if(scan.camId)localStorage.setItem(CAM_KEY,scan.camId);}catch(e){}
+        tuneTrack(tr);
         return true;
       }
       stopStream();
@@ -1162,13 +1170,16 @@ async function switchCamera(){
   // essaie les caméras suivantes jusqu'à en trouver une qui renvoie une image
   for(let k=1;k<=cams.length;k++){
     const cam=cams[(i+k)%cams.length];
-    try{await startCamera(cam.deviceId);setHint("📷 "+(cam.label||"Caméra "+((i+k)%cams.length+1)));setTimeout(()=>{if(!scan.busy)idleHint();},1800);return;}catch(e){}
+    try{await startCamera(cam.deviceId);try{localStorage.setItem(CAM_KEY,cam.deviceId);}catch(e){}
+      const wide=/ultra|grand[- ]angle|wide/i.test(cam.label||"")&&!/dual|double|triple/i.test(cam.label||"");
+      setHint("📷 "+(cam.label||"Caméra "+((i+k)%cams.length+1))+(wide?" — attention : cet objectif fait mal la mise au point de près, touchez 🔄 encore":""));
+      setTimeout(()=>{if(!scan.busy)idleHint();},2500);return;}catch(e){}
   }
   setHint("Aucune caméra ne renvoie d'image. Fermez les autres applis qui utilisent la caméra puis réessayez.");
 }
 async function openScanner(){
   $("#scanner").hidden=false;document.body.style.overflow="hidden";
-  $("#scanSheet").hidden=true;scan.busy=false;scan.n=0;updateScanCount();
+  $("#scanSheet").hidden=true;scan.busy=false;scan.visBusy=false;scan.n=0;scan.last="";updateScanCount();
   setHint("Ouverture de la caméra…");
   if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     setHint("Caméra indisponible ici : ouvrez l'application depuis son adresse https (Cloudflare), pas depuis un fichier ou un aperçu. « ⌨️ » permet de saisir un code.");return;}
@@ -1191,7 +1202,7 @@ async function openScanner(){
 /* Reconnaissance visuelle automatique : quand l'image est stable, on envoie une vue à Claude */
 const AUTO_KEY="kitchenchef_auto";
 const vis={c:null,prev:null,lastSent:null,stable:0,lastCall:0,calls:0,ok:null};
-const AUTO_STABLE=6,AUTO_MAX_CALLS=60; // ~1,3 s immobile ; plafond par session pour maîtriser le coût
+const AUTO_STABLE=12,AUTO_MAX_CALLS=60; // ~1,3 s immobile ; plafond par session pour maîtriser le coût
 function frameSig(v){
   if(!vis.c){vis.c=document.createElement("canvas");vis.c.width=32;vis.c.height=24;}
   const x=vis.c.getContext("2d",{willReadFrequently:true});x.drawImage(v,0,0,32,24);
@@ -1212,21 +1223,24 @@ function setAuto(on){
   $(".scan-frame").classList.toggle("watch",on);$(".scan-frame").classList.remove("steady");
   vis.stable=0;if(!scan.busy)idleHint();
 }
+function mnReadyForAuto(){return!!getKey()||!!mnModel;}
 async function toggleAuto(){
   if(scan.auto){setAuto(false);return;}
   setAuto(true);
   if(!getKey()&&!mnModel){
-    setHint("⏳ Chargement de la reconnaissance (une seule fois, ~15 Mo)…");scan.busy=true;
-    try{await getMobileNet();scan.busy=false;idleHint();}
-    catch(e){scan.busy=false;setAuto(false);setHint("Reconnaissance indisponible : connexion internet nécessaire la première fois.");}
+    setHint("⏳ Chargement de la reconnaissance visuelle (une seule fois)… Les codes-barres fonctionnent déjà.");
+    try{await getMobileNet();if(!scan.busy)idleHint();}
+    catch(e){setAuto(false);setHint("Reconnaissance visuelle indisponible (connexion internet nécessaire la première fois). Les codes-barres fonctionnent.");}
   }
 }
+
 function autoTick(v){
   const g=frameSig(v),moving=sigDiff(g,vis.prev)>6;vis.prev=g;
   const fr=$(".scan-frame");
   if(moving){vis.stable=0;fr.classList.remove("steady");return;}
   vis.stable++;
-  if(vis.stable===2&&sigDiff(g,vis.lastSent)>12)setHint("Ne bougez plus…");
+  if(vis.stable===4&&sigDiff(g,vis.lastSent)>12)setHint("Ne bougez plus…");
+  if(Date.now()-scan.lastBarcodeSeen<4000){vis.stable=0;return;} // un code-barres est visible : on le laisse faire
   if(vis.stable<AUTO_STABLE)return;
   if(sigDiff(g,vis.lastSent)<=12){vis.stable=0;return;} // même scène qu'à l'instant : on n'envoie pas deux fois
   if(Date.now()-vis.lastCall<(getKey()?2500:1500))return;
@@ -1239,19 +1253,44 @@ function scanLoop(){
   scan.timer=setTimeout(async()=>{
     if($("#scanner").hidden)return;
     const v=$("#scanVideo");
+    // le code-barres est cherché en continu, même pendant une reconnaissance visuelle (sauf fiche ouverte)
     if(!scan.busy&&v.readyState>=2&&scan.detector){
       try{
-        const codes=await scan.detector.detect(v);
-        const c=codes&&codes[0]&&String(codes[0].rawValue||"");
-        if(c&&/^\d{8,14}$/.test(c)&&!(c===scan.last&&Date.now()-scan.lastAt<3500)){scan.last=c;scan.lastAt=Date.now();onCode(c);}
+        const c=await detectBarcode(v);
+        if(c){
+          scan.lastBarcodeSeen=Date.now();
+          if(!(c===scan.last&&Date.now()-scan.lastAt<3500)){
+            scan.last=c;scan.lastAt=Date.now();
+            if(scan.visBusy){scan.visToken++;scan.visBusy=false;$(".scan-frame").classList.remove("steady");} // le code-barres l'emporte
+            onCode(c);
+          }
+        }
       }catch(e){}
     }
-    if(scan.auto&&!scan.busy&&v.readyState>=2){try{autoTick(v);}catch(e){}}
+    if(scan.auto&&!scan.busy&&!scan.visBusy&&v.readyState>=2&&mnReadyForAuto()){try{autoTick(v);}catch(e){}}
     scanLoop();
-  },220);
+  },160);
 }
+let bcCanvas=null;
+async function detectBarcode(v){
+  scan.tick++;
+  let src=v;
+  if(scan.tick%2===0&&v.videoWidth){ // une fois sur deux : zone du cadre, agrandie (codes petits ou lointains)
+    const vw=v.videoWidth,vh=v.videoHeight,cw=Math.round(vw*.7),ch=Math.round(vh*.45);
+    if(!bcCanvas)bcCanvas=document.createElement("canvas");
+    bcCanvas.width=Math.min(1600,cw*2);bcCanvas.height=Math.round(bcCanvas.width*ch/cw);
+    const x=bcCanvas.getContext("2d",{willReadFrequently:true});
+    x.imageSmoothingEnabled=false;
+    x.drawImage(v,(vw-cw)/2,(vh-ch)*.4,cw,ch,0,0,bcCanvas.width,bcCanvas.height);
+    src=bcCanvas;
+  }
+  const codes=await scan.detector.detect(src);
+  for(const k of codes||[]){const c=String(k.rawValue||"").replace(/\s/g,"");if(/^\d{8,14}$/.test(c))return c;}
+  return null;
+}
+
 function closeScanner(){
-  clearTimeout(scan.timer);scan.auto=false;vis.prev=null;vis.lastSent=null;vis.calls=0;$(".scan-frame").classList.remove("watch","steady");$("#scanAuto").classList.remove("on");$("#scanAuto").textContent="👁️ Auto : non";
+  clearTimeout(scan.timer);scan.visToken++;scan.visBusy=false;scan.auto=false;vis.prev=null;vis.lastSent=null;vis.calls=0;$(".scan-frame").classList.remove("watch","steady");$("#scanAuto").classList.remove("on");$("#scanAuto").textContent="👁️ Auto : non";
   stopStream();
   $("#scanner").hidden=true;$("#scanSheet").hidden=true;scan.busy=false;scan.cur=null;
   document.body.style.overflow="";
@@ -1321,7 +1360,7 @@ function updateStockInfo(){
   const m=findItems(keyOf(name)).filter(i=>i.qty>0);
   $("#sInfo").textContent=m.length?"En stock : "+m.map(i=>fmtQty(i.qty,i.dim)+" de "+i.name).join(", "):(scan.mode==="out"?"⚠️ Ce produit n'est pas dans le stock":"Nouveau dans le stock");
 }
-function hideSheet(){$("#scanSheet").hidden=true;scan.cur=null;scan.busy=false;scan.lastAt=Date.now();vis.lastSent=vis.prev;vis.stable=0;$(".scan-frame").classList.remove("steady");idleHint();}
+function hideSheet(){$("#scanSheet").hidden=true;scan.cur=null;scan.busy=false;scan.visBusy=false;scan.lastAt=Date.now();vis.lastSent=vis.prev;vis.stable=0;$(".scan-frame").classList.remove("steady");idleHint();}
 function confirmProposal(){
   const p=scan.cur;if(!p)return;
   const name=$("#sName").value.trim();if(!name){toast("Donnez un nom au produit");$("#sName").focus();return;}
@@ -1342,11 +1381,14 @@ function confirmProposal(){
 async function scanWithoutCode(silent){
   const v=$("#scanVideo");
   if(!scan.stream||v.readyState<2){if(!silent)showProposal({name:"",size:1,unit:"u",zone:"frigo",unknown:true});return;}
-  scan.busy=true;setHint("🔍 Je regarde ce produit…");
+  const token=++scan.visToken;
+  if(silent)scan.visBusy=true;else scan.busy=true;
+  setHint("🔍 Je regarde ce produit…");
   const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);
   if(!getKey()){
     let p=null;try{p=await freeRecognize(c);}catch(e){}
-    if($("#scanner").hidden)return;
+    if($("#scanner").hidden||token!==scan.visToken||(silent&&scan.busy))return; // annulé (code-barres lu entre-temps)
+    scan.visBusy=false;
     $(".scan-frame").classList.remove("steady");
     if(!p){
       scan.busy=false;
@@ -1354,12 +1396,13 @@ async function scanWithoutCode(silent){
       showProposal({name:"",size:1,unit:"u",zone:"frigo",unknown:true});$("#sSub").textContent="Produit non reconnu : saisissez-le.";return;
     }
     try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}
-    showProposal(p);return;
+    scan.busy=true;showProposal(p);return;
   }
   try{
     const blob=await new Promise(res=>c.toBlob(res,"image/jpeg",.85));
     const {data}=await callVision("product",blob);
-    if($("#scanner").hidden)return;
+    if($("#scanner").hidden||token!==scan.visToken||(silent&&scan.busy))return;
+    scan.visBusy=false;scan.busy=true;
     const it=normRow(data||{});
     if(!it.name){
       scan.busy=false;$(".scan-frame").classList.remove("steady");
@@ -1369,6 +1412,8 @@ async function scanWithoutCode(silent){
     try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}
     showProposal({name:it.name,size:it.qty,unit:it.unit,zone:it.zone,unsure:it.unsure,brand:data.brand?String(data.brand):"",img:null,unknown:false});
   }catch(err){
+    if(token!==scan.visToken)return;
+    scan.visBusy=false;
     $(".scan-frame").classList.remove("steady");
     if(silent){scan.busy=false;setAuto(false);setHint("⚠️ "+err.message+" Reconnaissance auto désactivée.");if(err.code)openCodeDlg();return;}
     showProposal({name:"",size:1,unit:"u",zone:"frigo",unknown:true});
