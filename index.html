@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>KitchenChef</title>
 <meta name="description" content="Inventaire alimentaire, comparatif de prix et recettes anti-gaspillage.">
-<meta name="theme-color" content="#1f6f4a">
+<meta name="theme-color" content="#1b3c25">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -220,6 +220,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
   <!-- RECETTES -->
   <section class="view" id="view-recipes">
     <button class="btn block" id="newRecipeBtn" style="margin-bottom:12px">➕ Ajouter une recette</button>
+    <div class="chips" id="catChips"></div>
     <div class="chips" id="recipeChips"></div>
     <div id="recipeList"></div>
   </section>
@@ -238,6 +239,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
     <button id="exportBtn">💾 Exporter une sauvegarde</button>
     <button id="importBtn">📂 Importer une sauvegarde</button>
     <button id="codeBtn">🔑 Reconnaissance avancée (facultatif)</button>
+    <button id="restoreBtn">↩️ Restaurer les recettes de base</button>
     <button id="demoBtn">🧪 Charger des données d'exemple</button>
     <button id="resetBtn" style="color:var(--danger)">🗑️ Tout effacer</button>
     <button id="closeMenu">Fermer</button>
@@ -281,9 +283,10 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
   <img id="rImg" alt="Photo de la recette" hidden class="rphoto">
   <label for="rName">Nom de la recette</label><input class="field" id="rName" placeholder="ex. Lasagnes de mamie">
   <div class="grid2">
-    <div><label for="rEmoji">Emoji</label><input class="field" id="rEmoji" maxlength="4" placeholder="auto"></div>
+    <div><label for="rCat">Catégorie</label><select class="field" id="rCat"></select></div>
     <div><label for="rTime">Temps (min)</label><input class="field" id="rTime" type="number" inputmode="numeric" placeholder="30"></div>
   </div>
+  <label for="rEmoji">Emoji</label><input class="field" id="rEmoji" maxlength="4" placeholder="automatique" style="max-width:140px">
   <label for="rIng">Ingrédients (un par ligne)</label>
   <textarea id="rIng" placeholder="250 g de pâtes&#10;3 œufs&#10;20 cl de crème&#10;2 c. à soupe d'huile&#10;sel, poivre"></textarea>
   <label for="rSteps">Étapes (une par ligne)</label>
@@ -449,8 +452,8 @@ function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show"
 
 /* ---------- État ---------- */
 const STORE_KEY="kitchenchef_v1";
-const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{}});
-const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{}});
+const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{},hiddenBase:[]});
+const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{},hiddenBase:Array.isArray(s.hiddenBase)?s.hiddenBase:[]});
 let state=emptyState();
 function load(){try{const raw=localStorage.getItem(STORE_KEY);if(raw)state=fromSaved(JSON.parse(raw));}catch(e){}}
 function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){toast("⚠️ Sauvegarde impossible sur cet appareil");}}
@@ -622,9 +625,24 @@ function renderPrices(){
 }
 
 /* ---------- Rendu : recettes ---------- */
-RECIPES.forEach((r,i)=>r.id="b"+i);
-const allRecipes=()=>RECIPES.concat(state.recipes);
-let recipeFilter="all";
+const CATS={entree:{label:"Entrées",one:"Entrée",icon:"🥗"},plat:{label:"Plats",one:"Plat",icon:"🍲"},dessert:{label:"Desserts",one:"Dessert",icon:"🍰"},petitdej:{label:"Petit-déjeuner",one:"Petit-déjeuner",icon:"🥐"},gouter:{label:"Goûters",one:"Goûter",icon:"🍪"}};
+const BASE_CATS=["plat","plat","plat","plat","entree","plat","gouter","petitdej","plat","dessert","gouter","plat","entree","plat","plat"];
+RECIPES.forEach((r,i)=>{r.id="b"+i;r.cat=BASE_CATS[i]||"plat";});
+function guessCat(name){
+  const n=normalize(name);
+  if(/\b(salade|soupe|veloute|potage|gaspacho|carpaccio|tartare|terrine|rillette|oeufs? mimosa|verrine|entree|tapas|houmous|guacamole|bruschetta|feuillete)/.test(n))return"entree";
+  if(/\b(pancake|porridge|granola|muesli|smoothie|tartine|petit dej|brunch|oeufs? brouille|pain perdu|bowl cake)/.test(n))return"petitdej";
+  if(/\b(crepe|gaufre|cookie|muffin|madeleine|biscuit|sable|cake|gouter|brioche|financier|banana bread|barre)/.test(n))return"gouter";
+  if(/\b(gateau|tarte (aux|au|a la) (pomme|poire|fraise|citron|chocolat|framboise|abricot)|mousse|creme brulee|creme dessert|flan|tiramisu|fondant|moelleux|brownie|clafoutis|crumble|riz au lait|panna cotta|charlotte|ile flottante|sorbet|glace|dessert|compote|cheesecake|entremet)/.test(n))return"dessert";
+  return"plat";
+}
+const recipeCat=r=>CATS[r.cat]?r.cat:guessCat(r.name);
+const isBase=r=>/^b\d+$/.test(r.id);
+function allRecipes(){
+  const over=new Set(state.recipes.map(r=>r.id));const hid=new Set(state.hiddenBase);
+  return RECIPES.filter(r=>!over.has(r.id)&&!hid.has(r.id)).concat(state.recipes);
+}
+let recipeFilter="all",catFilter="all";
 function analyse(r){
   let missing=[],urgent=[],cost=0,costKnown=true,checks=[];
   for(const g of r.ing){
@@ -648,10 +666,16 @@ function analyse(r){
   return{missing,urgent,cost,costKnown,checks};
 }
 function renderRecipes(){
-  const chips=[["all","Toutes"],["mine","⭐ Mes recettes ("+state.recipes.length+")"],["ready","✅ Faisables"],["gaspi","🌱 Anti-gaspi"],["few","🛒 1–2 achats"]];
+  const all=allRecipes();
+  const nCat=k=>all.filter(r=>recipeCat(r)===k).length;
+  $("#catChips").innerHTML=[["all","Toutes ("+all.length+")"]].concat(Object.entries(CATS).map(([k,c])=>[k,c.icon+" "+c.label+" ("+nCat(k)+")"]))
+    .map(([k,l])=>`<button class="chip ${catFilter===k?"active":""}" data-cat="${k}">${l}</button>`).join("");
+  const nMine=all.filter(r=>!isBase(r)).length;
+  const chips=[["all","Tout"],["mine","⭐ Mes recettes ("+nMine+")"],["ready","✅ Faisables"],["gaspi","🌱 Anti-gaspi"],["few","🛒 1–2 achats"]];
   $("#recipeChips").innerHTML=chips.map(([k,l])=>`<button class="chip ${recipeFilter===k?"active":""}" data-rf="${k}">${l}</button>`).join("");
-  let list=allRecipes().map(r=>({r,a:analyse(r)}));
-  if(recipeFilter==="mine")list=list.filter(o=>o.r.custom);
+  let list=all.map(r=>({r,a:analyse(r)}));
+  if(catFilter!=="all")list=list.filter(o=>recipeCat(o.r)===catFilter);
+  if(recipeFilter==="mine")list=list.filter(o=>!isBase(o.r));
   if(recipeFilter==="ready")list=list.filter(o=>!o.a.missing.length);
   if(recipeFilter==="gaspi")list=list.filter(o=>o.a.urgent.length);
   if(recipeFilter==="few")list=list.filter(o=>o.a.missing.length>0&&o.a.missing.length<=2);
@@ -666,12 +690,13 @@ function renderRecipes(){
     const head=m===0?'<span class="badge">Tout est en stock</span>':`<span class="badge warn">Il manque ${m}</span>`;
     const urg=[...new Map(a.urgent.map(u=>[u.name,u])).values()];
     const pic=r.img?`<img class="rthumb" src="${esc(r.img)}" alt="">`:`<span style="font-size:28px">${esc(r.emoji||"🍽️")}</span>`;
-    return`<div class="card"><div class="row">${pic}<div class="grow"><h3 style="margin:0">${esc(r.name)}${r.custom?' <span class="badge">⭐ Perso</span>':""}</h3><div class="small muted">${r.time?r.time+" min · ":""}${head}</div></div></div>
+    const c=CATS[recipeCat(r)];
+    return`<div class="card"><div class="row">${pic}<div class="grow"><h3 style="margin:0">${esc(r.name)}${!isBase(r)?' <span class="badge">⭐ Perso</span>':""}</h3><div class="small muted">${c.icon} ${c.one} · ${r.time?r.time+" min · ":""}${head}</div></div></div>
       ${urg.length?`<div class="small" style="margin-top:8px;color:var(--warn)">🌱 Utilise ${urg.map(u=>esc(u.name)+(u.d<0?" (périmé)":u.d===0?" (aujourd'hui)":` (${u.d} j)`)).join(", ")}</div>`:""}
       <div style="margin-top:8px">${a.checks.map(c=>`<div class="ing"><span class="s">${c.status==="ok"?"✅":c.status==="ok?"?"🔎":c.status==="low"?"⚠️":c.g.o?"➖":"❌"}</span><span class="grow">${esc(c.g.n)} <span class="muted">${c.g.nq?"":fmtQty(c.g.q,c.g.d)}${c.g.o?(c.g.nq?"":" · ")+"facultatif":""}${c.status==="low"?" · en stock "+fmtQty(c.have,c.g.d):""}${c.status==="ok?"?" · à vérifier":""}</span></span></div>`).join("")}</div>
       ${m?`<div class="small muted" style="margin-top:6px">🛒 Achats : ${a.missing.map(x=>esc(x.n)).join(", ")}${a.cost>0?` · env. ${money(a.cost)}${a.costKnown?"":" + prix inconnus"}`:""}</div>`:""}
       ${r.steps&&r.steps.length?`<details><summary>Préparation</summary><ol>${r.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></details>`:""}
-      ${r.custom?`<button class="linkbtn" data-redit="${esc(r.id)}">✏️ Modifier la recette</button>`:""}
+      <div class="row" style="gap:18px"><button class="linkbtn" data-redit="${esc(r.id)}">✏️ Modifier</button><button class="linkbtn" style="color:var(--danger)" data-rdel="${esc(r.id)}">🗑️ Supprimer</button></div>
       <button class="btn secondary block" style="margin-top:10px" data-cook="${esc(r.id)}">J'ai cuisiné ça : déduire du stock</button></div>`;}).join("");
 }
 function cook(id){
@@ -773,12 +798,21 @@ function parseRecipeText(text){
 }
 
 /* ---------- Mes recettes : formulaire ---------- */
-let editingRecipe=null,recipeImg=null;
+let editingRecipe=null,recipeImg=null,ingOrig=new Map(),rCatTouched=false;
+function ingLine(g){
+  if(g.raw)return g.raw;
+  const opt=g.o?" (facultatif)":"";
+  if(g.nq)return g.n+opt;
+  if(g.d==="u")return trim3(g.q)+" "+g.n.charAt(0).toLowerCase()+g.n.slice(1)+opt;
+  return fmtQty(g.q,g.d)+(/^[aeiouyhéèêœ]/i.test(g.n)?" d'":" de ")+g.n.charAt(0).toLowerCase()+g.n.slice(1)+opt;
+}
 function openRecipeDlg(r){
   editingRecipe=r||null;recipeImg=r&&r.img||null;
   $("#rTitle").textContent=r?"Modifier la recette":"Nouvelle recette";
   $("#rName").value=r?r.name:"";$("#rEmoji").value=r?(r.emoji||""):"";$("#rTime").value=r&&r.time?r.time:"";
-  $("#rIng").value=r?r.ing.map(g=>g.raw||((g.nq?"":fmtQty(g.q,g.d)+" ")+g.n+(g.o?" (facultatif)":""))).join("\n"):"";
+  $("#rCat").value=r?recipeCat(r):(catFilter!=="all"?catFilter:"plat");rCatTouched=!!r;
+  ingOrig=new Map();
+  $("#rIng").value=r?r.ing.map(g=>{const l=ingLine(g);ingOrig.set(l,g);return l;}).join("\n"):"";
   $("#rSteps").value=r?(r.steps||[]).join("\n"):"";
   $("#rDel").style.visibility=r?"visible":"hidden";
   $("#rPasteBox").hidden=true;$("#rPaste").value="";$("#rOcr").textContent="";
@@ -796,12 +830,16 @@ function fillFromParsed(p){
 function saveRecipe(){
   const name=$("#rName").value.trim();
   if(!name){toast("Donnez un nom à la recette");return;}
-  const ing=$("#rIng").value.split(/\n+/).map(parseIngLine).filter(Boolean);
+  const ing=$("#rIng").value.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>ingOrig.get(l)||parseIngLine(l)).filter(Boolean);
   if(!ing.length){toast("Ajoutez au moins un ingrédient");return;}
   const steps=$("#rSteps").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const r={id:editingRecipe?editingRecipe.id:"c"+uid(),name:cap(name),emoji:$("#rEmoji").value.trim()||guessEmoji(name),time:parseInt($("#rTime").value,10)||null,ing,steps,img:recipeImg||null,custom:1};
-  if(editingRecipe)state.recipes=state.recipes.map(x=>x.id===r.id?r:x);else state.recipes.push(r);
-  save();recipeFilter="mine";renderAll();$("#recipeDlg").close();toast("⭐ Recette enregistrée");
+  const id=editingRecipe?editingRecipe.id:"c"+uid();
+  const cat=$("#rCat").value||guessCat(name);
+  const r={id,name:cap(name),emoji:$("#rEmoji").value.trim()||guessEmoji(name),cat,time:parseInt($("#rTime").value,10)||null,ing,steps,img:recipeImg||null,custom:1};
+  if(state.recipes.some(x=>x.id===id))state.recipes=state.recipes.map(x=>x.id===id?r:x);else state.recipes.push(r); // une recette de base modifiée devient votre version
+  if(!editingRecipe)recipeFilter="all";
+  catFilter=cat;
+  save();renderAll();$("#recipeDlg").close();toast(editingRecipe?"✏️ Recette modifiée":"⭐ Recette enregistrée");
 }
 
 /* ---------- Mes recettes : photo (lecture du texte sur le téléphone) ---------- */
@@ -1503,12 +1541,24 @@ $("#priceSearch").addEventListener("input",renderPrices);
 $("#recipeChips").addEventListener("click",e=>{const b=e.target.closest("[data-rf]");if(!b)return;recipeFilter=b.dataset.rf;renderRecipes();});
 $("#recipeList").addEventListener("click",e=>{
   const c=e.target.closest("[data-cook]");if(c){cook(c.dataset.cook);return;}
-  const ed=e.target.closest("[data-redit]");if(ed){const r=state.recipes.find(x=>x.id===ed.dataset.redit);if(r)openRecipeDlg(r);}
+  const ed=e.target.closest("[data-redit]");if(ed){const r=allRecipes().find(x=>x.id===ed.dataset.redit);if(r)openRecipeDlg(r);return;}
+  const dl=e.target.closest("[data-rdel]");if(dl)deleteRecipe(allRecipes().find(x=>x.id===dl.dataset.rdel));
 });
 $("#newRecipeBtn").onclick=()=>openRecipeDlg(null);
 $("#rCancel").onclick=()=>$("#recipeDlg").close();
 $("#rSave").onclick=saveRecipe;
-$("#rDel").onclick=()=>{if(!editingRecipe||!confirm("Supprimer la recette « "+editingRecipe.name+" » ?"))return;state.recipes=state.recipes.filter(x=>x.id!==editingRecipe.id);save();renderAll();$("#recipeDlg").close();toast("Recette supprimée");};
+function deleteRecipe(r){
+  if(!r||!confirm("Supprimer la recette « "+r.name+" » ?"))return false;
+  state.recipes=state.recipes.filter(x=>x.id!==r.id);
+  if(isBase(r)&&!state.hiddenBase.includes(r.id))state.hiddenBase.push(r.id);
+  save();renderAll();toast("🗑️ Recette supprimée");return true;
+}
+$("#rDel").onclick=()=>{if(deleteRecipe(editingRecipe))$("#recipeDlg").close();};
+$("#catChips").addEventListener("click",e=>{const b=e.target.closest("[data-cat]");if(!b)return;catFilter=b.dataset.cat;renderRecipes();});
+$("#rName").addEventListener("input",()=>{if(!rCatTouched&&!editingRecipe)$("#rCat").value=guessCat($("#rName").value);});
+$("#rCat").addEventListener("change",()=>{rCatTouched=true;});
+$("#restoreBtn").onclick=()=>{const n=state.hiddenBase.length;if(!n){toast("Aucune recette de base supprimée");return;}
+  if(!confirm("Remettre les "+n+" recette(s) de base supprimée(s) ?"))return;state.hiddenBase=[];save();renderAll();$("#menuDlg").close();toast("Recettes de base restaurées");};
 $("#rPasteBtn").onclick=()=>{$("#rPasteBox").hidden=!$("#rPasteBox").hidden;if(!$("#rPasteBox").hidden)$("#rPaste").focus();};
 $("#rPasteGo").onclick=()=>{const t=$("#rPaste").value;if(!t.trim()){toast("Collez d'abord le texte de la recette");return;}$("#rOcr").textContent="✅ "+fillFromParsed(parseRecipeText(t));};
 $("#rPhotoBtn").onclick=()=>$("#rPhoto").click();
@@ -1603,6 +1653,7 @@ $("#importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=ne
 
 /* Init */
 fillZoneSelect($("#mZone"),true);fillZoneSelect($("#eZone"),false);fillZoneSelect($("#sZone"),false);
+$("#rCat").innerHTML=Object.entries(CATS).map(([k,c])=>`<option value="${k}">${c.icon} ${c.one}</option>`).join("");
 load();renderAll();
 if("serviceWorker" in navigator&&location.protocol.startsWith("http")){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
 </script>
