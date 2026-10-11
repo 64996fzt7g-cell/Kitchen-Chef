@@ -1113,30 +1113,67 @@ function idleHint(){setHint(scan.mode==="in"?"Visez le code-barres du produit à
 function setStatus(t,kind){const el=$("#scanStatus");el.textContent=t||"";el.className="scan-status"+(kind?" "+kind:"");}
 function withTimeout(p,ms,label){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label||"délai dépassé")),ms))]);}
 
-/* 1. Lecteur de codes-barres */
+/* 1. Lecteur de codes-barres
+   Ordre d'essai : lecteur intégré du téléphone (Android) → ZXing en JavaScript pur (fonctionne sur iPhone)
+   → ancien moteur WebAssembly. Chaque lecteur est testé avant d'être retenu. */
+const ZXING_SOURCES=[
+  ["ZXing","https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"],
+  ["ZXing (unpkg)","https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"]
+];
+function blankCanvas(){const c=document.createElement("canvas");c.width=64;c.height=64;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,64,64);return c;}
+async function tryNative(){
+  if(!("BarcodeDetector" in window))throw new Error("absent");
+  const sup=await window.BarcodeDetector.getSupportedFormats();
+  if(!BC_FORMATS.some(f=>sup.includes(f)))throw new Error("formats");
+  const det=new window.BarcodeDetector({formats:BC_FORMATS});
+  await withTimeout(det.detect(blankCanvas()),5000,"délai"); // certains iPhone l'annoncent mais il ne marche pas
+  return det;
+}
+function makeZxingDetector(){
+  const Z=window.ZXing;
+  const need=["MultiFormatReader","BinaryBitmap","HybridBinarizer","HTMLCanvasElementLuminanceSource","DecodeHintType","BarcodeFormat"];
+  const miss=need.filter(k=>!Z||!Z[k]);if(miss.length)throw new Error("ZXing incomplet ("+miss.join(",")+")");
+  const hints=new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,Z.BarcodeFormat.UPC_A,Z.BarcodeFormat.UPC_E]);
+  hints.set(Z.DecodeHintType.TRY_HARDER,true);
+  const reader=new Z.MultiFormatReader();reader.setHints(hints);
+  return{async detect(canvas){
+    try{
+      const bmp=new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(canvas)));
+      const r=reader.decodeWithState?reader.decodeWithState(bmp):reader.decode(bmp);
+      const t=r&&(r.getText?r.getText():r.text);
+      return t?[{rawValue:String(t)}]:[];
+    }catch(e){
+      if(e instanceof TypeError||e instanceof ReferenceError)throw e; // vrai bug
+      return[]; // NotFound / Checksum / Format : simplement pas de code sur cette image
+    }finally{try{reader.reset&&reader.reset();}catch(e){}}
+  }};
+}
 function loadDetector(){
   if(scan.detector)return Promise.resolve(scan.detector);
   if(scan.detectorLoading)return scan.detectorLoading;
   scan.detectorLoading=(async()=>{
-    if("BarcodeDetector" in window){
+    const errs=[];
+    try{scan.detector=await tryNative();scan.detectorName="intégré";return scan.detector;}catch(e){errs.push("intégré : "+(e.message||e));}
+    for(const [name,url] of ZXING_SOURCES){
       try{
-        const sup=await window.BarcodeDetector.getSupportedFormats();
-        if(BC_FORMATS.some(f=>sup.includes(f))){scan.detector=new window.BarcodeDetector({formats:BC_FORMATS});scan.detectorName="intégré";return scan.detector;}
-      }catch(e){}
+        setStatus("⏳ Chargement du lecteur ("+name+")…");
+        if(!window.ZXing)await withTimeout(loadScript(url),20000,"pas de réponse");
+        const det=makeZxingDetector();
+        await det.detect(blankCanvas());
+        scan.detector=det;scan.detectorName=name;scan.slow=true;return det;
+      }catch(e){errs.push(name+" : "+(e.message||e));}
     }
-    let lastErr=null;
     for(const [name,url] of BD_SOURCES){
       try{
         setStatus("⏳ Chargement du lecteur ("+name+")…");
         const mod=await withTimeout(import(url),20000,"pas de réponse");
         const det=new mod.BarcodeDetector({formats:BC_FORMATS});
-        // premier essai sur une petite image vide : force le téléchargement du moteur et vérifie qu'il marche
-        const c=document.createElement("canvas");c.width=64;c.height=64;c.getContext("2d").fillRect(0,0,64,64);
-        await withTimeout(det.detect(c),25000,"moteur trop long à démarrer");
+        await withTimeout(det.detect(blankCanvas()),25000,"moteur trop long à démarrer");
         scan.detector=det;scan.detectorName=name;return det;
-      }catch(e){lastErr=e;}
+      }catch(e){errs.push(name+" : "+(e.message||e));}
     }
-    throw lastErr||new Error("inconnu");
+    throw new Error(errs.join(" | "));
   })();
   scan.detectorLoading.catch(()=>{scan.detectorLoading=null;});
   return scan.detectorLoading;
@@ -1245,7 +1282,8 @@ function grabFrame(v,crop){
   if(!bcCanvas)bcCanvas=document.createElement("canvas");
   let sx=0,sy=0,sw=vw,sh=vh;
   if(crop){sw=Math.round(vw*.75);sh=Math.round(vh*.5);sx=(vw-sw)/2;sy=(vh-sh)*.42;} // zone du cadre
-  const scale=Math.min(1,1280/sw)*(crop?1.6:1);
+  const maxW=scan.slow?(crop?1000:900):1280;
+  const scale=Math.min(crop?1.6:1,maxW/sw);
   bcCanvas.width=Math.round(sw*scale);bcCanvas.height=Math.round(sh*scale);
   const x=bcCanvas.getContext("2d",{willReadFrequently:true});
   x.drawImage(v,sx,sy,sw,sh,0,0,bcCanvas.width,bcCanvas.height);
