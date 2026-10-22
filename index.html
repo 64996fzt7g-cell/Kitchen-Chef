@@ -40,8 +40,8 @@ header h1 span{color:var(--accent)}
 .iconbtn:active{background:var(--line)}
 main{padding:14px 16px 24px;max-width:720px;margin:0 auto}
 .view{display:none}.view.active{display:block}
-nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav.tabs button{border:0;background:none;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);cursor:pointer}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;display:grid;grid-template-columns:repeat(6,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{border:0;background:none;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);cursor:pointer}
 nav.tabs button .ic{font-size:21px;line-height:1.2}
 nav.tabs button.active{color:var(--accent);font-weight:600}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
@@ -152,6 +152,20 @@ nav.tabs button{position:relative}
 .shop-row{cursor:pointer;align-items:flex-start}
 .shop-row.done{opacity:.5}
 .shop-row.done .name{text-decoration:line-through}
+.seg2{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:12px;gap:2px}
+.seg2 button{flex:1;border:0;background:none;padding:9px 2px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg2 button.on{background:var(--accent);color:var(--accent-ink)}
+.nbar{margin-top:8px}.ntrack{height:7px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:4px}
+.nfill{height:100%;border-radius:9px;background:var(--accent)}.nfill.under{background:#d9a441}.nfill.over{background:var(--danger)}
+.meal{border-top:1px solid var(--line);padding:10px 0 4px}.meal:first-of-type{border-top:0}
+.meal.plaisir{background:var(--warn-soft);margin:6px -14px 0;padding:10px 14px 6px}
+.meal details summary{font-size:13px;margin-top:4px}
+.mbtn{border:1px solid var(--line);background:var(--bg);border-radius:10px;width:38px;height:38px;font-size:17px;cursor:pointer;flex:none}
+.batch-card{border-color:var(--accent)}
+.item.covered{opacity:.75}
+.checks{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.checks label{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;margin:0}
+.checks input,.item input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 .linkbtn{border:0;background:none;color:var(--accent);font-weight:600;font-size:14px;cursor:pointer;padding:6px 0}
 dialog .inner{padding:18px}
 .menu-list button{display:block;width:100%;text-align:left;border:0;background:none;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;font-size:16px}
@@ -232,6 +246,52 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
     <div id="priceList"></div>
   </section>
 
+  <!-- NUTRITION -->
+  <section class="view" id="view-nutri">
+    <div class="seg2" id="nutriSeg"><button data-ns="week" class="on">🗓️ Semaine</button><button data-ns="shop">🛒 Courses</button><button data-ns="goals">🎯 Objectifs</button><button data-ns="mine">📥 Recettes</button></div>
+    <div id="nutri_week"></div>
+    <div id="nutri_shop" hidden></div>
+    <div id="nutri_goals" hidden>
+      <div class="card"><h2>🎯 Objectifs journaliers <span class="small muted">(par personne)</span></h2>
+        <div class="chips" id="ng_presets"></div>
+        <div class="grid2">
+          <div><label for="ng_kcal">Calories (kcal)</label><input class="field" id="ng_kcal" type="number" inputmode="numeric"></div>
+          <div><label for="ng_p">Protéines (g)</label><input class="field" id="ng_p" type="number" inputmode="numeric"></div>
+          <div><label for="ng_g">Glucides (g)</label><input class="field" id="ng_g" type="number" inputmode="numeric"></div>
+          <div><label for="ng_l">Lipides (g)</label><input class="field" id="ng_l" type="number" inputmode="numeric"></div>
+          <div><label for="ng_f">Fibres (g)</label><input class="field" id="ng_f" type="number" inputmode="numeric"></div>
+          <div><label for="ng_persons">Personnes</label><input class="field" id="ng_persons" type="number" inputmode="numeric" min="1"></div>
+        </div>
+        <label for="ng_budget">💶 Budget courses par semaine (€)</label><input class="field" id="ng_budget" type="number" inputmode="decimal">
+      </div>
+      <div class="card"><h2>🍽️ Organisation</h2>
+        <div class="checks"><label><input type="checkbox" id="ng_breakfast"> 🥐 Inclure le petit-déjeuner</label><label><input type="checkbox" id="ng_batch"> 🍱 Batch cooking (déjeuners préparés le dimanche)</label></div>
+        <div class="grid2">
+          <div><label for="ng_tempDej">Déjeuner</label><select class="field" id="ng_tempDej"><option value="any">Chaud ou froid</option><option value="chaud">🔥 Chaud</option><option value="froid">❄️ Froid</option></select></div>
+          <div><label for="ng_tempDin">Dîner</label><select class="field" id="ng_tempDin"><option value="any">Chaud ou froid</option><option value="chaud">🔥 Chaud</option><option value="froid">❄️ Froid</option></select></div>
+          <div><label for="ng_plaisirDay">🍕 Repas plaisir</label><select class="field" id="ng_plaisirDay"></select></div>
+          <div><label for="ng_plaisirSlot">&nbsp;</label><select class="field" id="ng_plaisirSlot"><option value="dej">Déjeuner</option><option value="din">Dîner</option></select></div>
+        </div>
+      </div>
+      <div class="card"><h2>❤️ Vos goûts</h2>
+        <label for="ng_likes">J'aime particulièrement</label><textarea id="ng_likes" style="min-height:60px" placeholder="ex. saumon, avocat, curry, pâtes"></textarea>
+        <label for="ng_dislikes">Je ne mange pas</label><textarea id="ng_dislikes" style="min-height:60px" placeholder="ex. champignon, porc, poisson, lactose, gluten, végétarien"></textarea>
+        <p class="small muted" style="margin:6px 0 0">Séparez par des virgules. Les familles « poisson », « viande », « porc », « lactose », « gluten », « végétarien », « fruits de mer » excluent tous les produits concernés.</p>
+      </div>
+      <button class="btn block" data-nact="savegen">💾 Enregistrer et générer ma semaine</button>
+    </div>
+    <div id="nutri_mine" hidden>
+      <div class="card"><h2>📥 Importer des recettes</h2>
+        <p class="small muted" style="margin:0 0 8px">Collez une ou plusieurs recettes (séparées par une ligne <code>---</code>) ou choisissez un fichier (.txt ou sauvegarde .json). Pour une photo, utilisez « Ajouter une recette » → 📷.</p>
+        <textarea id="nImportText" placeholder="Velouté de potiron&#10;Pour 4 personnes&#10;Ingrédients&#10;800 g de potiron&#10;1 oignon&#10;20 cl de lait&#10;Préparation&#10;Cuire le potiron 20 min…&#10;---&#10;Recette suivante…"></textarea>
+        <div class="row" style="gap:8px;margin-top:8px"><button class="btn grow" data-nact="import">Importer</button><button class="btn secondary grow" data-nact="importfile">📄 Fichier</button><button class="btn secondary grow" data-nact="newrecipe">➕ Créer</button></div>
+        <input type="file" id="nImportFile" accept=".txt,.json,text/plain,application/json" hidden>
+      </div>
+      <h3 style="margin:14px 0 8px">Mes recettes</h3>
+      <div id="nutri_mineList"></div>
+    </div>
+  </section>
+
   <!-- COURSES -->
   <section class="view" id="view-shop">
     <div class="card">
@@ -269,6 +329,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
   <button data-view="stock" class="active"><span class="ic">🥫</span>Stock</button>
   <button data-view="add"><span class="ic">➕</span>Ajouter</button>
   <button data-view="recipes"><span class="ic">🍲</span>Recettes</button>
+  <button data-view="nutri"><span class="ic">🥗</span>Nutrition</button>
   <button data-view="shop"><span class="ic">🛒</span>Courses<span class="tab-badge" id="shopBadge" hidden></span></button>
   <button data-view="prices"><span class="ic">🏷️</span>Prix</button>
 </nav>
@@ -326,7 +387,16 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding
     <div><label for="rCat">Catégorie</label><select class="field" id="rCat"></select></div>
     <div><label for="rTime">Temps (min)</label><input class="field" id="rTime" type="number" inputmode="numeric" placeholder="30"></div>
   </div>
+  <div class="grid2">
+    <div><label for="rPortions">Portions</label><input class="field" id="rPortions" type="number" inputmode="numeric" placeholder="2"></div>
+    <div><label for="rTemp">Servi</label><select class="field" id="rTemp"><option value="">Automatique</option><option value="chaud">🔥 Chaud</option><option value="froid">❄️ Froid</option></select></div>
+  </div>
   <label for="rEmoji">Emoji</label><input class="field" id="rEmoji" maxlength="4" placeholder="automatique" style="max-width:140px">
+  <div class="checks">
+    <label><input type="checkbox" id="rPlanner"> 🗓️ Proposer dans le planificateur</label>
+    <label><input type="checkbox" id="rBatch"> 🍱 Convient au batch cooking</label>
+    <label><input type="checkbox" id="rPlaisir"> 🍕 Repas plaisir</label>
+  </div>
   <label for="rIng">Ingrédients (un par ligne)</label>
   <textarea id="rIng" placeholder="250 g de pâtes&#10;3 œufs&#10;20 cl de crème&#10;2 c. à soupe d'huile&#10;sel, poivre"></textarea>
   <label style="display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;margin-top:12px"><input type="checkbox" id="rHealthy" style="width:20px;height:20px;accent-color:var(--accent)"> 💚 Recette healthy</label>
@@ -517,6 +587,89 @@ const HEALTHY=[
   steps:["Étaler la pâte brisée dans un moule de 30 cm et la cuire à blanc 10 min à 200 °C.","Couper les courgettes en rondelles et les cuire 10 à 15 min à la poêle avec l'huile.","Fouetter les œufs avec la crème végétale, saler, poivrer et ajouter le thym.","Disposer les courgettes sur la pâte, ajouter le bacon puis la préparation. Couvrir de rondelles de chèvre et cuire 20 min à 180 °C."]}
 ];
 RECIPES.push(...HEALTHY);
+/* ---------- Repas du planificateur (équilibrés, économiques) ---------- */
+const PLANNER_RECIPES=[
+ // Petits-déjeuners
+ {name:"Porridge pomme-cannelle",emoji:"🥣",cat:"petitdej",time:10,portions:2,temp:"chaud",lines:["80 g de flocons d'avoine","30 cl de lait","1 pomme","0.5 c. à café de cannelle","10 g de miel"],
+  steps:["Chauffer le lait avec les flocons d'avoine 5 min en remuant.","Ajouter la pomme coupée en dés et la cannelle, cuire encore 2 min.","Servir avec un filet de miel."]},
+ {name:"Skyr, fruits rouges & granola",emoji:"🫐",cat:"petitdej",time:5,portions:2,temp:"froid",lines:["300 g de skyr","150 g de fruits rouges surgelés","60 g de granola"],
+  steps:["Laisser décongeler les fruits rouges la veille au réfrigérateur (ou 1 min au micro-ondes).","Répartir le skyr dans deux bols, ajouter les fruits et le granola."]},
+ {name:"Tartines complètes œuf & avocat",emoji:"🥑",cat:"petitdej",time:10,portions:2,temp:"chaud",lines:["4 tranches de pain complet","2 œufs","1 avocat","1 pincée de sel"],
+  steps:["Faire griller le pain.","Cuire les œufs au plat ou mollets (6 min dans l'eau bouillante).","Écraser l'avocat sur les tartines, poser l'œuf, saler et poivrer."]},
+ {name:"Overnight oats banane-cacao",emoji:"🍌",cat:"petitdej",time:5,portions:2,temp:"froid",batch:true,lines:["80 g de flocons d'avoine","25 cl de lait d'amande","1 banane","1 c. à soupe de cacao en poudre","20 g de graines de chia"],
+  steps:["La veille, mélanger flocons, lait d'amande, cacao et graines de chia dans deux bocaux.","Réserver une nuit au réfrigérateur.","Le matin, ajouter la banane en rondelles."]},
+ {name:"Fromage blanc, pomme & noix",emoji:"🍎",cat:"petitdej",time:5,portions:2,temp:"froid",lines:["300 g de fromage blanc","1 pomme","20 g de noix","10 g de miel"],
+  steps:["Couper la pomme en dés.","Répartir le fromage blanc, ajouter la pomme, les noix concassées et un filet de miel."]},
+ {name:"Omelette aux épinards & pain complet",emoji:"🍳",cat:"petitdej",time:10,portions:2,temp:"chaud",lines:["4 œufs","100 g d'épinards","2 tranches de pain complet","1 c. à café d'huile d'olive"],
+  steps:["Faire tomber les épinards 2 min à la poêle avec l'huile.","Ajouter les œufs battus, saler, poivrer et cuire 3 min.","Servir avec le pain complet grillé."]},
+ // Plats chauds
+ {name:"Poulet, riz & brocoli",emoji:"🍗",cat:"plat",time:30,portions:4,temp:"chaud",batch:true,lines:["4 filets de poulet","240 g de riz basmati","1 brocoli","2 c. à soupe d'huile d'olive","2 c. à soupe de sauce soja"],
+  steps:["Cuire le riz.","Cuire le brocoli en fleurettes 6 min à la vapeur ou à l'eau.","Dorer le poulet en morceaux dans l'huile 8 à 10 min, ajouter la sauce soja.","Répartir en boîtes : se garde 3 jours au réfrigérateur."]},
+ {name:"Saumon, patate douce & haricots verts",emoji:"🐟",cat:"plat",time:30,portions:2,temp:"chaud",lines:["2 pavés de saumon","1 patate douce","200 g de haricots verts","1 c. à soupe d'huile d'olive"],
+  steps:["Rôtir la patate douce en cubes avec l'huile 25 min à 200 °C.","Cuire les haricots verts 8 min à l'eau.","Cuire le saumon 4 min de chaque côté à la poêle ou 12 min au four."]},
+ {name:"Chili sin carne",emoji:"🌶️",cat:"plat",time:35,portions:4,temp:"chaud",batch:true,lines:["400 g de haricots rouges en conserve","400 g de tomates concassées","1 poivron","1 oignon","150 g de maïs","200 g de riz","2 c. à café de cumin","1 c. à soupe d'huile d'olive"],
+  steps:["Faire revenir oignon et poivron en dés dans l'huile 5 min.","Ajouter tomates, haricots égouttés, maïs et cumin, mijoter 20 min.","Servir avec le riz. Encore meilleur réchauffé le lendemain."]},
+ {name:"Curry de pois chiches & épinards",emoji:"🍛",cat:"plat",time:30,portions:4,temp:"chaud",batch:true,lines:["400 g de pois chiches","200 g d'épinards","20 cl de lait de coco","400 g de tomates concassées","1 oignon","2 c. à café de curry","200 g de riz basmati"],
+  steps:["Faire revenir l'oignon émincé avec le curry.","Ajouter tomates, lait de coco et pois chiches égouttés, mijoter 15 min.","Ajouter les épinards 2 min avant la fin. Servir avec le riz."]},
+ {name:"Bolognaise de lentilles",emoji:"🍝",cat:"plat",time:35,portions:4,temp:"chaud",batch:true,lines:["200 g de lentilles","400 g de tomates concassées","1 carotte","1 oignon","300 g de pâtes complètes","40 g de parmesan"],
+  steps:["Faire revenir oignon et carotte en petits dés.","Ajouter lentilles, tomates et 30 cl d'eau, mijoter 25 min.","Servir sur les pâtes complètes avec le parmesan."]},
+ {name:"Dinde, courgettes & quinoa",emoji:"🦃",cat:"plat",time:25,portions:2,temp:"chaud",lines:["2 escalopes de dinde","2 courgettes","120 g de quinoa","1 c. à soupe d'huile d'olive"],
+  steps:["Cuire le quinoa 12 min.","Poêler les courgettes en rondelles 8 min.","Cuire les escalopes 4 min de chaque côté, saler, poivrer."]},
+ {name:"Cabillaud & purée de carottes",emoji:"🥕",cat:"plat",time:30,portions:2,temp:"chaud",lines:["2 pavés de cabillaud","500 g de carottes","300 g de pommes de terre","10 g de beurre"],
+  steps:["Cuire carottes et pommes de terre 20 min à l'eau, écraser avec le beurre.","Cuire le cabillaud 10 min au four à 180 °C ou à la vapeur."]},
+ {name:"Omelette aux champignons & salade",emoji:"🍄",cat:"plat",time:15,portions:2,temp:"chaud",lines:["5 œufs","200 g de champignons","1 salade","30 g d'emmental"],
+  steps:["Poêler les champignons émincés 5 min.","Ajouter les œufs battus et l'emmental, cuire 4 min.","Servir avec la salade."]},
+ {name:"Soupe de légumes & lentilles corail",emoji:"🥣",cat:"plat",time:35,portions:4,temp:"chaud",batch:true,lines:["150 g de lentilles corail","3 carottes","1 poireau","2 pommes de terre","1 oignon","1 cube de bouillon"],
+  steps:["Couper tous les légumes en morceaux.","Les couvrir d'eau avec le bouillon et les lentilles, cuire 25 min.","Mixer. Se garde 4 jours au réfrigérateur."]},
+ {name:"Steak haché, haricots verts & pommes de terre",emoji:"🥩",cat:"plat",time:25,portions:2,temp:"chaud",lines:["2 steaks hachés","300 g de haricots verts","400 g de pommes de terre","1 c. à café d'huile d'olive"],
+  steps:["Cuire les pommes de terre 20 min à l'eau.","Cuire les haricots verts 8 min.","Poêler les steaks 3 min de chaque côté."]},
+ {name:"Gratin de chou-fleur au jambon",emoji:"🥦",cat:"plat",time:40,portions:3,temp:"chaud",batch:true,lines:["1 chou-fleur","4 tranches de jambon","25 cl de lait","20 g de farine","60 g d'emmental"],
+  steps:["Cuire le chou-fleur en fleurettes 10 min.","Béchamel légère : farine délayée dans le lait froid, chauffer en remuant jusqu'à épaississement.","Plat : chou-fleur, jambon, béchamel, emmental. Gratiner 20 min à 200 °C."]},
+ {name:"Wok de bœuf & légumes",emoji:"🥢",cat:"plat",time:25,portions:2,temp:"chaud",lines:["250 g de bœuf","1 poivron","200 g de champignons","140 g de riz","2 c. à soupe de sauce soja","1 c. à soupe d'huile"],
+  steps:["Cuire le riz.","Saisir le bœuf en lanières 2 min à feu vif, réserver.","Faire sauter poivron et champignons 5 min, remettre le bœuf avec la sauce soja."]},
+ // Plats froids
+ {name:"Salade de lentilles, œuf & feta",emoji:"🥗",cat:"plat",time:25,portions:4,temp:"froid",batch:true,lines:["200 g de lentilles","4 œufs","100 g de feta","2 tomates","2 c. à soupe d'huile d'olive","1 c. à soupe de vinaigre"],
+  steps:["Cuire les lentilles 20 min, égoutter et refroidir.","Cuire les œufs 9 min, écaler.","Mélanger lentilles, tomates, feta, vinaigrette. Ajouter les œufs au moment de servir."]},
+ {name:"Taboulé de quinoa au poulet",emoji:"🥙",cat:"plat",time:25,portions:4,temp:"froid",batch:true,lines:["200 g de quinoa","2 filets de poulet","1 concombre","3 tomates","1 citron","2 c. à soupe d'huile d'olive","Persil"],
+  steps:["Cuire le quinoa, refroidir.","Cuire le poulet, le couper en dés.","Mélanger avec concombre, tomates, persil, jus de citron et huile."]},
+ {name:"Salade de pâtes au thon",emoji:"🍝",cat:"plat",time:20,portions:2,temp:"froid",lines:["160 g de pâtes complètes","1 boîte de thon","150 g de maïs","2 tomates","2 c. à soupe d'huile d'olive"],
+  steps:["Cuire les pâtes, rincer à l'eau froide.","Mélanger avec le thon émietté, le maïs, les tomates et l'huile."]},
+ {name:"Buddha bowl pois chiches & avocat",emoji:"🥑",cat:"plat",time:20,portions:2,temp:"froid",lines:["120 g de quinoa","200 g de pois chiches","1 avocat","2 carottes","60 g d'épinards","1 c. à soupe de graines","1 c. à soupe d'huile d'olive"],
+  steps:["Cuire le quinoa.","Râper les carottes, trancher l'avocat.","Disposer quinoa, pois chiches, légumes et pousses d'épinards dans les bols, parsemer de graines."]},
+ {name:"Wraps poulet crudités",emoji:"🌯",cat:"plat",time:15,portions:2,temp:"froid",lines:["4 wraps","2 filets de poulet","1 salade","2 tomates","100 g de fromage blanc"],
+  steps:["Cuire le poulet et l'émincer.","Tartiner les wraps de fromage blanc assaisonné, garnir de salade, tomate et poulet, rouler."]},
+ {name:"Salade niçoise",emoji:"🫒",cat:"plat",time:25,portions:2,temp:"froid",lines:["4 œufs","1 boîte de thon","200 g de haricots verts","300 g de pommes de terre","2 tomates","30 g d'olives","1 c. à soupe d'huile d'olive"],
+  steps:["Cuire pommes de terre (20 min), haricots verts (8 min) et œufs (9 min).","Refroidir, puis assembler avec thon, tomates, olives et l'huile."]},
+ {name:"Poke bowl saumon & avocat",emoji:"🍣",cat:"plat",time:20,portions:2,temp:"froid",lines:["160 g de riz","200 g de saumon","1 avocat","1 concombre","2 c. à soupe de sauce soja"],
+  steps:["Cuire le riz et le laisser tiédir.","Couper saumon (très frais), avocat et concombre en dés.","Assembler, arroser de sauce soja."]},
+ {name:"Salade de pois chiches, feta & concombre",emoji:"🥒",cat:"plat",time:10,portions:2,temp:"froid",lines:["400 g de pois chiches","100 g de feta","1 concombre","2 tomates","1 citron","2 c. à soupe d'huile d'olive"],
+  steps:["Égoutter les pois chiches.","Couper concombre, tomates et feta en dés.","Mélanger avec le jus de citron et l'huile."]},
+ // Repas plaisir
+ {name:"Burger maison & potatoes",emoji:"🍔",cat:"plat",time:35,portions:2,temp:"chaud",plaisir:true,lines:["2 pains burger","2 steaks hachés","2 tranches de cheddar","1 tomate","1 salade","400 g de pommes de terre","1 c. à soupe d'huile d'olive"],
+  steps:["Couper les pommes de terre en quartiers, mélanger avec l'huile et cuire 30 min à 210 °C.","Cuire les steaks, poser le cheddar en fin de cuisson.","Monter les burgers avec salade et tomate."]},
+ {name:"Pizza maison jambon-champignons",emoji:"🍕",cat:"plat",time:30,portions:2,temp:"chaud",plaisir:true,lines:["1 pâte à pizza","150 g de coulis de tomate","125 g de mozzarella","3 tranches de jambon","150 g de champignons"],
+  steps:["Étaler la pâte, couvrir de coulis.","Garnir de jambon, champignons et mozzarella.","Cuire 15 min à 240 °C."]},
+ {name:"Lasagnes à la bolognaise",emoji:"🧀",cat:"plat",time:60,portions:4,temp:"chaud",plaisir:true,batch:true,lines:["12 feuilles de lasagne","300 g de viande hachée","400 g de tomates concassées","1 oignon","50 cl de lait","40 g de beurre","40 g de farine","60 g d'emmental"],
+  steps:["Bolognaise : oignon et viande revenus, puis tomates, 15 min.","Béchamel : beurre fondu, farine, puis lait en fouettant jusqu'à épaississement.","Alterner feuilles, bolognaise et béchamel, finir par l'emmental. Cuire 30 min à 180 °C."]},
+ {name:"Tartiflette",emoji:"🫕",cat:"plat",time:50,portions:4,temp:"chaud",plaisir:true,lines:["800 g de pommes de terre","200 g de lardons","1 reblochon","1 oignon","10 cl de crème"],
+  steps:["Cuire les pommes de terre 15 min et les couper en rondelles.","Faire revenir oignon et lardons.","Plat : pommes de terre, lardons, crème, reblochon coupé en deux. Cuire 25 min à 200 °C."]}
+].map(r=>({...r,tags:["planner"]}));
+RECIPES.push(...PLANNER_RECIPES);
+/* Réglages des recettes existantes pour le planificateur : portions, chaud/froid, batch, plaisir */
+const BASE_META={
+ "Omelette au fromage":{portions:2,temp:"chaud"},"Pâtes carbonara":{portions:2,temp:"chaud",plaisir:true},"Gratin de pâtes au jambon":{portions:3,temp:"chaud",batch:true,plaisir:true},
+ "Riz cantonais":{portions:3,temp:"chaud",batch:true},"Soupe de légumes":{portions:3,temp:"chaud",batch:true},"Dahl de lentilles corail":{portions:3,temp:"chaud",batch:true},
+ "Crêpes":{portions:4,temp:"chaud"},"Pain perdu":{portions:2,temp:"chaud"},"Quiche lorraine":{portions:4,temp:"chaud",batch:true,plaisir:true},"Riz au lait":{portions:4,temp:"froid"},
+ "Gâteau au yaourt":{portions:8,temp:"froid"},"Chili con carne":{portions:4,temp:"chaud",batch:true},"Salade de riz au thon":{portions:2,temp:"froid",batch:true},
+ "Poêlée pommes de terre lardons":{portions:3,temp:"chaud"},"Croque-monsieur":{portions:2,temp:"chaud",plaisir:true},
+ "Verrines chia & mangue":{temp:"froid"},"Crème au chocolat healthy":{temp:"froid"},"Carrot cake":{temp:"froid"},"Mini-banana bread":{temp:"froid"},
+ "Mousse poire, granola & sauce chocolat":{temp:"froid"},"Granola sucré maison":{portions:6,temp:"froid"},"Muffins pépites de chocolat & noisettes":{temp:"froid"},
+ "Tartelettes fraises & crème d'amande":{temp:"froid"},"Cake aux courgettes, chèvre & jambon":{temp:"froid",batch:true},"Wok cantonais aux pleurotes & tofu":{temp:"chaud",batch:true},
+ "Quiche au saumon & aux épinards":{temp:"chaud",batch:true},"Curry de patate douce, courgette & crevettes":{temp:"chaud",batch:true},
+ "Chakchouka de haricots rouges au poivron":{temp:"chaud"},"Quiche aux courgettes, chèvre & bacon":{temp:"chaud",batch:true}
+};
+RECIPES.forEach(r=>{const m=BASE_META[r.name];if(m)for(const k in m)if(r[k]==null)r[k]=m[k];});
+
 
 /* ---------- Utilitaires ---------- */
 const $=s=>document.querySelector(s);
@@ -553,11 +706,11 @@ function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show"
 
 /* ---------- État ---------- */
 const STORE_KEY="kitchenchef_v1";
-const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{},hiddenBase:[],plan:{},shopExtra:[],shopDone:{},aliases:{},pantry:[]});
-const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{},hiddenBase:Array.isArray(s.hiddenBase)?s.hiddenBase:[],plan:s.plan&&typeof s.plan==="object"?s.plan:{},shopExtra:Array.isArray(s.shopExtra)?s.shopExtra:[],shopDone:s.shopDone&&typeof s.shopDone==="object"?s.shopDone:{},aliases:s.aliases&&typeof s.aliases==="object"?s.aliases:{},pantry:Array.isArray(s.pantry)?s.pantry:[]});
+const emptyState=()=>({items:[],prices:{},lastStore:"",recipes:[],barcodes:{},hiddenBase:[],plan:{},shopExtra:[],shopDone:{},aliases:{},pantry:[],nutri:defaultNutri(),week:null});
+const fromSaved=s=>({items:s.items||[],prices:s.prices||{},lastStore:s.lastStore||"",recipes:Array.isArray(s.recipes)?s.recipes:[],barcodes:s.barcodes&&typeof s.barcodes==="object"?s.barcodes:{},hiddenBase:Array.isArray(s.hiddenBase)?s.hiddenBase:[],plan:s.plan&&typeof s.plan==="object"?s.plan:{},shopExtra:Array.isArray(s.shopExtra)?s.shopExtra:[],shopDone:s.shopDone&&typeof s.shopDone==="object"?s.shopDone:{},aliases:s.aliases&&typeof s.aliases==="object"?s.aliases:{},pantry:Array.isArray(s.pantry)?s.pantry:[],nutri:Object.assign(defaultNutri(),s.nutri||{}),week:s.week&&s.week.meals?s.week:null});
 let state=emptyState();
 function load(){try{const raw=localStorage.getItem(STORE_KEY);if(raw)state=fromSaved(JSON.parse(raw));}catch(e){}}
-function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){toast("⚠️ Sauvegarde impossible sur cet appareil");}}
+function save(){try{if(typeof recipeNutriCache!=="undefined")recipeNutriCache.clear();localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){toast("⚠️ Sauvegarde impossible sur cet appareil");}}
 
 /* ---------- Correspondance produits ---------- */
 function matchScore(qKey,itemKey,exclude){
@@ -833,7 +986,7 @@ function renderRecipes(){
     const urg=[...new Map(a.urgent.map(u=>[u.name,u])).values()];
     const pic=r.img?`<img class="rthumb" src="${esc(r.img)}" alt="">`:`<span style="font-size:28px">${esc(r.emoji||"🍽️")}</span>`;
     const c=CATS[recipeCat(r)];
-    return`<div class="card"><div class="row">${pic}<div class="grow"><h3 style="margin:0">${esc(r.name)}${isHealthy(r)?' <span class="badge">💚 Healthy</span>':""}${!isBase(r)?' <span class="badge">⭐ Perso</span>':""}</h3><div class="small muted">${c.icon} ${c.one} · ${r.time?r.time+" min · ":""}${r.serves?"👥 "+esc(r.serves)+" · ":""}${head}</div></div></div>
+    return`<div class="card"><div class="row">${pic}<div class="grow"><h3 style="margin:0">${esc(r.name)}${isHealthy(r)?' <span class="badge">💚 Healthy</span>':""}${!isBase(r)?' <span class="badge">⭐ Perso</span>':""}</h3><div class="small muted">${c.icon} ${c.one} · ${r.time?r.time+" min · ":""}${r.serves?"👥 "+esc(r.serves)+" · ":""}${head}</div>${(()=>{const nu=recipeNutri(r);return nu.kcal&&nu.cover>=0.5?`<div class="small muted" style="margin-top:2px">${nutriLine(nu)} <span style="opacity:.8">/ portion</span></div>`:"";})()}</div></div>
       ${urg.length?`<div class="small" style="margin-top:8px;color:var(--warn)">🌱 Utilise ${urg.map(u=>esc(u.name)+(u.d<0?" (périmé)":u.d===0?" (aujourd'hui)":` (${u.d} j)`)).join(", ")}</div>`:""}
       <div style="margin-top:8px">${a.checks.map(c=>`<div class="ing"${c.status==="no"||c.status==="low"?` data-have="${esc(c.g.n)}" style="cursor:pointer"`:""}><span class="s">${c.status==="ok"?"✅":c.status==="ok?"?"🔎":c.status==="low"?"⚠️":c.g.o?"➖":"❌"}</span><span class="grow">${c.g.raw?esc(prettyRaw(c.g.raw))+' <span class="muted">'+(c.g.o&&!/facultatif/i.test(c.g.raw)?"· facultatif":""):esc(c.g.n)+' <span class="muted">'+(c.g.nq?"":fmtQty(c.g.q,c.g.d))+(c.g.o?(c.g.nq?"":" · ")+"facultatif":"")}${c.status==="low"?" · en stock "+fmtQty(c.have,c.g.d):""}${c.status==="ok?"?" · à vérifier":""}</span></span></div>`).join("")}</div>
       ${m?`<div class="small muted" style="margin-top:6px">🛒 Achats : ${a.missing.map(x=>esc(x.n)).join(", ")}${a.cost>0?` · env. ${money(a.cost)}${a.costKnown?"":" + prix inconnus"}`:""}</div>`:""}
@@ -909,6 +1062,7 @@ function guessEmoji(name){
 
 /* ---------- Mes recettes : lecture d'un texte complet ---------- */
 function parseRecipeText(text){
+  let portions=0;
   const lines=String(text||"").split(/\r?\n/).map(l=>l.replace(/\s+/g," ").trim());
   let name="",emoji="",time=0,sec=null;const ing=[],steps=[];
   const H_ING=/^(?:#+\s*)?(ingr[ée]dients?|il vous faut|liste des ingr[ée]dients|courses)\b[^:]*?:?\s*(.*)$/i;
@@ -930,7 +1084,7 @@ function parseRecipeText(text){
     if(tms.length&&/^(temps|pr[ée]paration|cuisson|repos|dur[ée]e|total)\b/i.test(l)&&l.length<70){
       for(const x of tms)time+=/^h/i.test(x[2])?+x[1]*60:+x[1];
       continue;}
-    if(/^(pour|portions?|personnes?|parts?|difficult[ée]|co[uû]t|budget)\b/i.test(l)&&l.length<50)continue;
+    if(/^(pour|portions?|personnes?|parts?|difficult[ée]|co[uû]t|budget)\b/i.test(l)&&l.length<50){const pm=/^(pour|portions?|personnes?|parts?)/i.test(l)&&l.match(/(\d+)/);if(pm)portions=+pm[1];continue;}
     if((m=l.match(H_STEP))){sec="step";continue;}
     if((m=l.match(H_ING))&&l.length<60){sec="ing";if(m[2])ing.push(m[2]);continue;}
     if(!name&&!sec){name=l.replace(/^#+\s*/,"");continue;}
@@ -939,7 +1093,7 @@ function parseRecipeText(text){
     else if((/^[-–•*·]/.test(l)||NUMSTART.test(l.toLowerCase()))&&l.length<70&&!/^\d+\s*[.)]\s/.test(l))ing.push(l);
     else pushStep(l);
   }
-  return{name,emoji,time:time||null,ing,steps};
+  return{name,emoji,time:time||null,portions:portions||null,ing,steps};
 }
 
 /* ---------- Mes recettes : formulaire ---------- */
@@ -957,6 +1111,8 @@ function openRecipeDlg(r){
   $("#rName").value=r?r.name:"";$("#rEmoji").value=r?(r.emoji||""):"";$("#rTime").value=r&&r.time?r.time:"";
   $("#rCat").value=r?recipeCat(r):(catFilter!=="all"?catFilter:"plat");rCatTouched=!!r;
   $("#rHealthy").checked=r?isHealthy(r):recipeFilter==="healthy";
+  $("#rPortions").value=r?(r.portions||recipePortions(r)):"";$("#rTemp").value=r&&(r.temp==="chaud"||r.temp==="froid")?r.temp:"";
+  $("#rPlanner").checked=r?r.planner!==false:true;$("#rBatch").checked=!!(r&&r.batch);$("#rPlaisir").checked=!!(r&&r.plaisir);
   ingOrig=new Map();
   $("#rIng").value=r?r.ing.map(g=>{const l=ingLine(g);ingOrig.set(l,g);return l;}).join("\n"):"";
   $("#rSteps").value=r?(r.steps||[]).join("\n"):"";
@@ -969,6 +1125,7 @@ function fillFromParsed(p){
   if(p.name&&!$("#rName").value.trim())$("#rName").value=p.name;
   if(p.emoji&&!$("#rEmoji").value.trim())$("#rEmoji").value=p.emoji;
   if(p.time&&!$("#rTime").value)$("#rTime").value=p.time;
+  if(p.portions&&!$("#rPortions").value)$("#rPortions").value=p.portions;
   if(p.ing.length)$("#rIng").value=p.ing.join("\n");
   if(p.steps.length)$("#rSteps").value=p.steps.join("\n");
   return p.ing.length+" ingrédient(s), "+p.steps.length+" étape(s) trouvés. Vérifiez puis enregistrez.";
@@ -983,7 +1140,8 @@ function saveRecipe(){
   const cat=$("#rCat").value||guessCat(name);
   const prevTags=(editingRecipe&&editingRecipe.tags||[]).filter(t=>t!=="healthy");
   const tags=$("#rHealthy").checked?prevTags.concat("healthy"):prevTags;
-  const r={id,name:cap(name),emoji:$("#rEmoji").value.trim()||guessEmoji(name),cat,time:parseInt($("#rTime").value,10)||null,serves:editingRecipe&&editingRecipe.serves||null,tags,ing,steps,img:recipeImg||null,custom:1};
+  const r={id,name:cap(name),emoji:$("#rEmoji").value.trim()||guessEmoji(name),cat,time:parseInt($("#rTime").value,10)||null,serves:editingRecipe&&editingRecipe.serves||null,tags,ing,steps,img:recipeImg||null,custom:1,
+    portions:parseInt($("#rPortions").value,10)||null,temp:$("#rTemp").value||undefined,planner:$("#rPlanner").checked,batch:$("#rBatch").checked,plaisir:$("#rPlaisir").checked};
   if(state.recipes.some(x=>x.id===id))state.recipes=state.recipes.map(x=>x.id===id?r:x);else state.recipes.push(r); // une recette de base modifiée devient votre version
   if(!editingRecipe)recipeFilter="all";
   catFilter=cat;
@@ -1690,31 +1848,32 @@ function niceQty(q,d){ // arrondi lisible pour acheter
   if(q<0.1)return Math.ceil(q*100-1e-9)/100;
   return Math.ceil(q*20-1e-9)/20; // pas de 50 g / 5 cl
 }
-function buildShopList(){
+function buildShopList(planArg,extraArg){
+  const planMap=planArg||state.plan,extras=extraArg||state.shopExtra;
   const needs=new Map();
   const add=(g,times,from)=>{
     if(g.o)return; // facultatif : pas dans la liste
-    const key=keyOf(g.n),k=key+"|"+(g.nq?"nq":g.d);
+    const key=keyOf(g.n).split(" ").filter(w=>!["conserve","frai","fraiche","surgele","bio"].includes(w)).join(" ")||keyOf(g.n),k=key+"|"+(g.nq?"nq":g.d);
     let n=needs.get(k);
     if(!n){n={k,key,name:g.n,d:g.d,nq:!!g.nq,q:0,x:g.x,from:new Set()};needs.set(k,n);}
     if(!g.nq)n.q+=g.q*times;
     from.forEach(f=>n.from.add(f));
   };
   const recipes=allRecipes();
-  for(const id in state.plan){const r=recipes.find(x=>x.id===id);if(!r)continue;for(const g of r.ing)add(g,state.plan[id],[r.emoji||"🍽️"]);}
-  for(const e of state.shopExtra)add({n:e.name,q:e.qty,d:e.dim,nq:!e.qty},1,["✍️"]);
+  for(const id in planMap){const r=recipes.find(x=>x.id===id);if(!r)continue;for(const g of r.ing)add(g,planMap[id],[r.emoji||"🍽️"]);}
+  for(const e of extras)add({n:e.name,q:e.qty,d:e.dim,nq:!e.qty},1,["✍️"]);
   // on retire ce qui est déjà en stock (sans compter deux fois le même produit)
   const left=new Map(state.items.map(i=>[i.id,i.qty]));
-  const rows=[],checks=[];
+  const rows=[],checks=[],covered=[];
   for(const n of needs.values()){
-    if(isPantry(n.key))continue;
+    if(isPantry(n.key)){covered.push({...n,via:"🧂 toujours en stock"});continue;}
     const matches=findItems(n.key,n.x).filter(i=>(left.get(i.id)||0)>0);
-    if(n.nq){if(matches.length)continue;rows.push({...n,buy:null});continue;}
+    if(n.nq){if(matches.length){covered.push({...n,via:matches[0].name});continue;}rows.push({...n,buy:null});continue;}
     let need=n.q;
     for(const i of matches){const c=convertQty(left.get(i.id),i.dim,n.d);if(c==null||need<=1e-9)continue;const t=Math.min(c,need);left.set(i.id,left.get(i.id)-convertQty(t,n.d,i.dim));need-=t;}
-    if(need<=1e-6)continue;
+    if(need<=1e-6){covered.push({...n,need:niceQty(n.q,n.d),via:matches.map(i=>i.name).slice(0,2).join(", ")});continue;}
     const other=matches.filter(i=>convertQty(1,i.dim,n.d)==null);
-    if(other.some(i=>(state.aliases[n.key]||[]).includes(i.key)))continue; // relié par vous : disponible
+    if(other.some(i=>(state.aliases[n.key]||[]).includes(i.key))){covered.push({...n,via:other[0].name});continue;} // relié par vous : disponible
     if(other.length){checks.push({...n,buy:niceQty(need,n.d),stockName:other.map(i=>i.name+" ("+fmtQty(i.qty,i.dim)+")").join(", ")});continue;}
     rows.push({...n,buy:niceQty(need,n.d),inStock:n.q-need>1e-6});
   }
@@ -1723,7 +1882,7 @@ function buildShopList(){
     const ps=pricesFor(r.key,r.d,r.x).map(s=>({...s,cost:s.p*r.buy})).sort((a,b)=>a.cost-b.cost);
     r.offers=ps;r.best=ps[0]||null;r.avg=ps.length?ps.reduce((a,s)=>a+s.cost,0)/ps.length:null;
   }
-  rows.checks=checks;
+  rows.checks=checks;rows.covered=covered;
   return rows;
 }
 function shopText(rows){
@@ -1836,13 +1995,484 @@ function togglePantry(){
   save();renderAll();$("#linkDlg").close();toast(isPantry(linkKey)?"🧂 « "+linkName+" » ne sera plus ajouté aux courses":"« "+linkName+" » peut de nouveau aller dans les courses");
 }
 
+/* ---------- Base nutritionnelle (valeurs moyennes pour 100 g, d'après les tables usuelles type Ciqual)
+   [nom, kcal, protéines, glucides, lipides, fibres, poids d'une pièce (g), prix moyen €/kg ou €/L] ---------- */
+const NUTRI_RAW=[
+ // œufs, laitages
+ ["oeuf",140,12.5,0.7,9.5,0,55,4.5],["jaune oeuf",320,16,0.5,27,0,18,4.5],["blanc oeuf",48,11,0.7,0.2,0,35,4.5],
+ ["lait",46,3.3,4.8,1.6,0,0,1.0],["lait amande",24,0.5,3,1.1,0.3,0,2.5],["lait avoine",45,0.8,7,1.5,0.6,0,2],["lait soja",39,3.3,1.8,1.9,0.5,0,2],
+ ["lait riz",50,0.3,10,1,0.1,0,2],["lait cajou",30,0.6,3,1.6,0.2,0,2.8],["boisson vegetale",40,1,5,1.5,0.4,0,2.2],["boisson amande",24,0.5,3,1.1,0.3,0,2.5],
+ ["boisson avoine",45,0.8,7,1.5,0.6,0,2],["boisson soja",39,3.3,1.8,1.9,0.5,0,2],["lait coco",180,1.8,3,18,0,0,4.5],["creme coco",200,2,3,20,0,0,5],["creme coco legere",100,1,3,9,0,0,5],
+ ["yaourt",60,4,5,3,0,125,2.5],["yaourt grec",130,6,4,10,0,150,5],["yaourt vegetal",60,4,4,2.5,0.5,125,4],["skyr",60,10,4,0.2,0,150,5],
+ ["fromage blanc",75,7.5,4,3.2,0,0,3],["faisselle",75,7.5,4,3.2,0,0,3.5],["beurre",745,0.7,0.6,82,0,0,9],["margarine",540,0,0,60,0,0,6],
+ ["creme",290,2.3,3,30,0,0,5],["creme fraiche",290,2.3,3,30,0,0,5],["creme legere",120,3,4,10,0,0,5],["creme vegetale",160,1,5,15,0.5,0,4],["creme soja",170,2.5,4,16,0.5,0,4],
+ ["fromage",360,23,1,29,0,0,12],["fromage rape",380,28,0,30,0,0,11],["emmental",380,28,0,30,0,0,11],["gruyere",410,28,0,33,0,0,15],["comte",410,27,0,34,0,0,18],
+ ["parmesan",400,33,0,28,0,0,20],["mozzarella",250,18,1,19,0,125,9],["chevre",290,19,1,23,0,0,14],["buche chevre",290,19,1,23,0,180,12],["feta",270,15,1,23,0,200,11],
+ ["mascarpone",430,4.5,3,44,0,0,10],["st moret",260,7,3,24,0,0,12],["ricotta",140,9,3,10,0,0,9],["camembert",270,20,0,21,0,250,9],["reblochon",330,20,0,27,0,450,14],
+ ["cheddar",400,25,1,33,0,20,13],["raclette",340,23,0,27,0,0,14],
+ // viandes, poissons, protéines végétales
+ ["jambon",115,20,1,3.5,0,40,14],["lardon",300,15,0.5,26,0,0,13],["bacon",230,19,1,17,0,0,15],["poulet",120,23,0,2.5,0,150,12],["filet poulet",120,23,0,2.5,0,150,12],
+ ["dinde",110,23,0,1.5,0,130,12],["escalope dinde",110,23,0,1.5,0,130,12],["boeuf",150,22,0,6.5,0,0,18],["viande hachee",175,20,0,10,0,0,12],["steak hache",135,21,0,5.5,0,125,12],
+ ["porc",160,21,0,8,0,0,10],["saucisse",290,13,1,26,0,60,9],["chorizo",460,24,2,40,0,0,15],["saumon",200,20,0,13,0,125,22],["cabillaud",80,18,0,0.7,0,130,18],
+ ["thon",115,26,0,1,0,140,12],["sardine",210,24,0,13,0,0,10],["maquereau",230,19,0,17,0,0,10],["crevette",95,21,0,1,0,15,20],["surimi",105,8,15,1.5,0,17,8],
+ ["tofu",125,13,1.5,7.5,1,0,8],
+ // légumes
+ ["carotte",36,0.8,7,0.3,2.7,120,1.3],["courgette",17,1.2,2,0.3,1,250,2.2],["tomate",18,0.9,3,0.2,1.2,120,2.8],["tomate cerise",20,0.9,3,0.2,1.3,12,6],
+ ["tomate concassee",25,1.2,4,0.2,1.2,0,1.8],["pulpe tomate",25,1.2,4,0.2,1.2,0,1.8],["coulis tomate",35,1.4,6,0.3,1.4,0,2.5],["concentre tomate",80,4,13,0.5,4,0,6],
+ ["concombre",13,0.6,2,0.1,0.6,350,2],["poivron",27,0.9,5,0.3,2,180,3.5],["oignon",40,1.2,7.6,0.2,1.8,100,1.6],["echalote",72,2,14,0.1,1.7,30,6],["ail",130,6,25,0.5,2,5,8],
+ ["poireau",30,1.2,4.5,0.3,2.7,250,2.5],["champignon",22,3,0.5,0.3,1.4,20,5],["pleurote",33,3.3,3.5,0.4,2.3,0,10],["brocoli",34,3,3,0.4,2.6,400,3],["chou fleur",25,2,2.5,0.3,2,700,2.5],
+ ["epinard",25,3,1,0.4,2.6,0,3.5],["salade",15,1.3,1.5,0.2,1.2,300,4],["laitue",15,1.3,1.5,0.2,1.2,300,4],["mache",20,2,1,0.4,2,0,12],["roquette",25,2.6,2,0.7,1.6,0,14],
+ ["aubergine",25,1,4,0.2,2.5,300,3],["haricot vert",30,2,4,0.2,3.4,0,4],["petit pois",75,5.5,10,0.5,5,0,3.5],["mais",100,3,17,1.5,2.7,0,3],
+ ["pomme terre",80,2,17,0.1,1.8,150,1.2],["patate douce",86,1.6,20,0.1,3,300,2.5],["courge",45,1,10,0.1,2,1200,2],["butternut",45,1,10,0.1,2,1200,2],["betterave",45,1.6,8,0.1,2.8,150,3],
+ ["avocat",200,2,1.5,20,6.5,170,6],["chou",25,1.3,4,0.2,2.5,1000,1.5],["celeri",18,0.7,3,0.2,1.6,0,3],["radis",15,1,2,0.1,1.6,10,4],["olive",150,1,1,15,3,4,10],
+ ["frite",150,2.5,24,5,2.5,0,2.5],["potiron",26,1,5,0.1,1.5,2000,1.8],["citrouille",26,1,5,0.1,1.5,2000,1.8],["potimarron",40,1,8,0.2,2,1200,2.5],
+ ["navet",25,0.8,4.5,0.2,2,150,2.5],["panais",70,1.3,15,0.3,4,200,3.5],["fenouil",20,1.2,3,0.2,2.5,250,3.5],["endive",17,1,2.5,0.1,1.1,120,3],["asperge",25,2.2,3,0.2,2,25,8],
+ ["artichaut",45,3,6,0.2,5,300,4],["chou bruxelles",43,3.4,5,0.3,4,15,4],["chou rouge",30,1.4,5,0.2,2.5,1000,2],["haricot",30,2,4,0.2,3.4,0,4],["edamame",120,11,9,5,5,0,8],
+ ["poisson",90,19,0,1.5,0,130,15],["colin",80,18,0,1,0,130,14],["merlu",80,18,0,1,0,130,14],["lieu",80,18,0,1,0,130,14],["truite",140,20,0,6,0,130,18],["moule",90,14,3,2,0,0,6],
+ ["poisson pane",200,12,18,9,1,100,8],["tagliatelle",355,12.5,70,1.5,3,0,2.5],["penne",355,12.5,70,1.5,3,0,1.8],["coquillette",355,12.5,70,1.5,3,0,1.8],["fusilli",355,12.5,70,1.5,3,0,1.8],
+ ["nouille",360,11,74,2,2.5,0,4],["vermicelle",355,12,72,1.5,3,0,3],["gnocchi",160,4,33,1,2,0,4],["polenta",360,8,77,1.5,3,0,3],["couscous",360,12,73,1.5,3.5,0,2],["ble",350,12,70,1.8,7,0,4],
+ ["pain pita",270,9,55,1.2,2.5,60,6],["galette riz",380,8,80,3,4,9,10],["pesto",450,5,6,45,2,0,15],["sauce tomate",50,1.5,8,1.5,1.5,0,3],["cornichon",15,0.6,2,0.2,1.2,0,6],
+ ["capre",25,2,2,0.9,3,0,20],["chocolat lait",540,7,57,31,2,0,9],["biscuit",450,7,70,15,3,0,6],["brioche",360,8,50,14,2,0,6],["croissant",410,8,45,22,2,50,10],
+ ["pain chocolat",410,8,48,21,3,60,10],["glace",200,3.5,24,10,0.5,0,6],["sorbet",120,0.3,30,0.2,1,0,7],["yaourt soja",50,4,2.5,2.2,0.5,125,4],["oeuf caille",160,13,0.4,11,0,10,20],
+ // fruits
+ ["pomme",52,0.3,12,0.2,2,150,2.5],["poire",55,0.4,12,0.1,3,170,3],["banane",90,1.1,20,0.3,2.6,120,2],["orange",47,1,9,0.2,2,180,2.5],["citron",30,1,3,0.3,2.8,100,3],
+ ["fraise",32,0.7,6,0.3,2,15,8],["framboise",50,1.2,5,0.6,6,0,15],["myrtille",57,0.7,12,0.3,2.4,0,15],["fruit rouge",45,1,7,0.3,4,0,7],["mangue",65,0.7,14,0.3,1.7,350,5],
+ ["kiwi",60,1,11,0.5,3,80,4],["raisin",70,0.6,16,0.2,1,0,4],["ananas",50,0.5,11,0.2,1.4,1000,3],["fruit passion",97,2.2,13,0.7,10,30,15],["compote",70,0.3,16,0.2,1.5,100,3.5],
+ ["poire sirop",65,0.3,15,0,1.5,0,4],["datte",290,2.5,65,0.4,8,8,8],["raisin sec",300,3,68,0.5,4,0,8],
+ // féculents, céréales, légumineuses (poids cru / sec)
+ ["pate",355,12.5,70,1.5,3,0,1.8],["pate complete",350,13,63,2.5,8,0,2.5],["spaghetti",355,12.5,70,1.5,3,0,1.8],["lasagne",355,12.5,70,1.5,3,20,3],
+ ["riz",350,7,78,0.6,1.4,0,2.2],["riz basmati",350,7,78,0.6,1.4,0,3],["riz complet",350,7.5,72,2.7,3.5,0,3],["quinoa",365,14,60,6,7,0,8],["semoule",360,12,73,1.5,3.5,0,2],
+ ["boulgour",350,12,70,1.5,7,0,3],["lentille",330,24,48,1.5,14,0,3.5],["lentille corail",340,24,52,1.5,11,0,4],["pois chiche",120,7,15,2.5,5,0,2.5],
+ ["haricot rouge",105,7,14,0.5,6.5,0,2.5],["haricot blanc",95,6.5,13,0.5,6,0,2.5],["flocon avoine",370,13,59,7,10,0,2.5],["son avoine",330,17,47,7,15,0,6],
+ ["farine",350,10,73,1.2,3,0,1.2],["farine ble t150",330,12,62,2,10,0,2.5],["farine epeautre",340,13,66,2.5,7,0,4],["farine orge",340,10,72,2,9,0,4],["maizena",350,0.3,86,0,1,0,4],
+ ["pain",260,8.5,50,1.5,3.5,0,4],["pain complet",240,9,42,2.5,7,35,5],["pain mie",270,8,48,4,3,25,5],["baguette",270,9,55,1.5,3,250,4],["pain burger",280,9,50,5,2,75,6],
+ ["wrap",300,8,50,7,3,60,8],["tortilla",300,8,50,7,3,60,8],["muesli",370,9,63,6,7,0,6],["granola",450,9,62,18,7,0,8],["cereale",380,8,78,3,5,0,6],
+ ["pate brisee",430,6,46,25,2,230,6],["pate sablee",470,6,55,25,2,230,6],["pate feuilletee",400,6,40,24,2,230,6],["pate pizza",280,7,50,5,2,260,6],
+ // matières grasses, oléagineux
+ ["huile",900,0,0,100,0,0,6],["huile olive",900,0,0,100,0,0,9],["huile tournesol",900,0,0,100,0,0,2.5],["huile coco",900,0,0,100,0,0,15],["huile sesame",900,0,0,100,0,0,14],
+ ["huile vegetale",900,0,0,100,0,0,4],["mayonnaise",700,1,1,75,0,0,6],
+ ["amande",600,21,8,52,12,0,14],["noisette",650,15,7,62,10,0,15],["noix",680,15,7,65,6,0,15],["noix pecan",700,9,5,72,9,0,25],["cacahuete",590,25,10,49,8,0,7],
+ ["beurre cacahuete",600,25,15,50,6,0,8],["puree noisette",650,15,8,60,8,0,25],["graine chia",490,17,8,31,34,0,15],["graine",580,25,10,48,7,0,8],["pistache",580,20,18,46,10,0,25],
+ ["noix coco",680,6,7,64,16,0,8],["copeau noix coco",680,6,7,64,16,0,12],["sesame",600,18,10,50,8,0,10],
+ // sucré
+ ["sucre",400,0,100,0,0,0,1.2],["sucre coco",380,1,94,0.5,0,0,12],["miel",320,0.4,80,0,0,0,10],["sirop agave",300,0,75,0,0,0,10],["sirop erable",260,0,67,0,0,0,20],
+ ["confiture",240,0.5,60,0,1,0,5],["chocolat",540,6,55,32,5,0,9],["chocolat noir",550,8,32,42,10,0,10],["pepite chocolat",500,6,55,28,8,0,12],["cacao",380,23,15,20,30,0,12],
+ ["pate tartiner",540,6,57,31,3,0,7],["compote pomme",70,0.3,16,0.2,1.5,100,3.5],
+ // assaisonnements (comptent pour 0 mais sont reconnus)
+ ["sel",0,0,0,0,0,0,1],["poivre",0,0,0,0,0,0,20],["epice",0,0,0,0,0,0,30],["cumin",0,0,0,0,0,0,30],["curry",0,0,0,0,0,0,30],["curcuma",0,0,0,0,0,0,30],["cannelle",0,0,0,0,0,0,30],
+ ["gingembre",0,0,0,0,0,0,20],["paprika",0,0,0,0,0,0,30],["thym",0,0,0,0,0,0,30],["menthe",0,0,0,0,0,0,30],["coriandre",0,0,0,0,0,0,30],["persil",0,0,0,0,0,0,30],["basilic",0,0,0,0,0,0,30],
+ ["herbe",0,0,0,0,0,0,30],["vanille",0,0,0,0,0,0,50],["extrait vanille",0,0,0,0,0,0,50],["levure",100,0,25,0,0,11,10],["bicarbonate",0,0,0,0,0,0,8],["muscade",0,0,0,0,0,0,40],
+ ["sauce soja",60,8,6,0,0,0,6],["moutarde",150,7,4,11,0,0,5],["ketchup",110,1,25,0,0,0,4],["vinaigre",20,0,1,0,0,0,3],["bouillon",250,10,20,15,0,10,15],["jus citron",25,0.4,7,0.2,0.3,0,6]
+];
+let NUTRI=null;
+function nutriDB(){
+  if(NUTRI)return NUTRI;
+  NUTRI=NUTRI_RAW.map(([n,kcal,p,g,l,f,unit,eur])=>({key:keyOf(n),w:words(keyOf(n)),kcal,p,g,l,f,unit,eur}));
+  return NUTRI;
+}
+const nutriCache=new Map();
+function nutriFor(key){
+  if(nutriCache.has(key))return nutriCache.get(key);
+  const iw=words(key);let best=null;
+  for(const e of nutriDB()){if(e.w.every(w=>iw.includes(w))&&(!best||e.w.length>best.w.length))best=e;}
+  nutriCache.set(key,best);return best;
+}
+// grammes d'un ingrédient (1 L ≈ 1 kg ; une pièce = poids moyen)
+function ingGrams(g,e){
+  if(g.nq)return null;
+  if(g.d==="mass"||g.d==="vol")return g.q*1000;
+  if(e&&e.unit)return g.q*e.unit;
+  return null;
+}
+/* Valeurs nutritionnelles et coût estimé d'une recette, par portion */
+function recipePortions(r){
+  if(r.portions>0)return r.portions;
+  const m=String(r.serves||"").match(/(\d+)/);
+  if(m&&!/\bg\b/.test(r.serves))return+m[1];
+  return 2;
+}
+const recipeNutriCache=new Map();
+function recipeNutri(r){
+  const sig=r.id+"|"+(r.ing||[]).length+"|"+r.portions+"|"+state.items.length+"|"+Object.keys(state.prices).length;
+  const c=recipeNutriCache.get(r.id);if(c&&c.sig===sig)return c.v;
+  const t={kcal:0,p:0,g:0,l:0,f:0,cost:0,known:0,total:0};
+  for(const g of r.ing||[]){
+    const key=keyOf(g.n),e=nutriFor(key);
+    const grams=ingGrams(g,e);
+    if(grams==null){continue;}
+    t.total+=grams;
+    if(e){t.known+=grams;for(const k of ["kcal","p","g","l","f"])t[k]+=e[k]*grams/100;}
+    // coût : votre prix relevé si connu, sinon prix moyen ; 0 si l'ingrédient est déjà dans le stock
+    if(!g.o)t.cost+=ingredientCost(g,key,e,grams);
+  }
+  const n=recipePortions(r);
+  const v={kcal:t.kcal/n,p:t.p/n,g:t.g/n,l:t.l/n,f:t.f/n,cost:t.cost/n,cover:t.total?t.known/t.total:0,portions:n};
+  recipeNutriCache.set(r.id,{sig,v});
+  return v;
+}
+function ingredientCost(g,key,e,grams){
+  if(isPantry(key))return 0;
+  const cov=stockCover(g);if(cov.have+1e-9>=g.q||cov.other.length)return 0;
+  const bp=bestPrice(key,g.d,g.x);
+  if(bp)return bp.p*(g.d==="u"?g.q:g.q);
+  if(e&&e.eur)return e.eur*grams/1000;
+  return 0;
+}
+function estimateRowCost(r){ // pour une ligne de liste de courses sans prix relevé
+  if(r.buy==null)return null;
+  const e=nutriFor(r.key);if(!e||!e.eur)return null;
+  const grams=r.d==="u"?(e.unit?r.buy*e.unit:null):r.buy*1000;
+  return grams==null?null:e.eur*grams/1000;
+}
+
+/* ---------- Planificateur de repas ---------- */
+const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+const SLOT_LABEL={petitdej:"🥐 Petit-déj",dej:"☀️ Déjeuner",din:"🌙 Dîner"};
+const NUTRI_KEYS=[["kcal","Calories","kcal"],["p","Protéines","g"],["g","Glucides","g"],["l","Lipides","g"],["f","Fibres","g"]];
+const NUTRI_PRESETS={
+  perte:{label:"Perte de poids",kcal:1600,p:100,g:160,l:55,f:30},
+  equilibre:{label:"Équilibre",kcal:2000,p:90,g:240,l:70,f:30},
+  sport:{label:"Sportif",kcal:2500,p:140,g:300,l:80,f:35}
+};
+function defaultNutri(){return{kcal:2000,p:90,g:240,l:70,f:30,budget:60,persons:1,breakfast:true,tempDej:"any",tempDin:"any",batch:true,plaisirDay:5,plaisirSlot:"din",likes:[],dislikes:[]};}
+const DISLIKE_GROUPS={
+  "poisson":["saumon","cabillaud","thon","sardine","maquereau","poisson","surimi"],
+  "fruit mer":["crevette","surimi","moule"],
+  "viande":["boeuf","porc","poulet","dinde","jambon","lardon","bacon","steak","viande","saucisse","chorizo"],
+  "porc":["porc","jambon","lardon","bacon","saucisse","chorizo"],
+  "lactose":["lait","fromage","yaourt","creme","beurre","emmental","gruyere","comte","parmesan","mozzarella","chevre","feta","mascarpone","skyr","reblochon","cheddar","st moret","ricotta","camembert","raclette"],
+  "gluten":["pate","farine","pain","semoule","boulgour","wrap","tortilla","lasagne","baguette","spaghetti"],
+  "oeuf":["oeuf"],"champignon":["champignon","pleurote"],"legumineuse":["lentille","pois chiche","haricot rouge","haricot blanc"]
+};
+DISLIKE_GROUPS["produit laitier"]=DISLIKE_GROUPS["laitage"]=DISLIKE_GROUPS["lactose"];
+DISLIKE_GROUPS["vegetarien"]=DISLIKE_GROUPS["viande"].concat(DISLIKE_GROUPS["poisson"],DISLIKE_GROUPS["fruit mer"]);
+const DAIRY_EXEMPT=["amande","avoine","soja","riz","coco","cajou","vegetal","vegetale","cacahuete"];
+const nset=()=>state.nutri;
+function slotsFor(){return(nset().breakfast?["petitdej"]:[]).concat(["dej","din"]);}
+function slotShare(slot){if(!nset().breakfast)return slot==="petitdej"?0:0.5;return{petitdej:0.25,dej:0.4,din:0.35}[slot];}
+function slotTarget(slot){const s=slotShare(slot),n=nset();return{kcal:n.kcal*s,p:n.p*s,g:n.g*s,l:n.l*s,f:n.f*s};}
+function inferTemp(r){
+  if(r.temp==="chaud"||r.temp==="froid")return r.temp;
+  const t=normalize(r.name+" "+(r.steps||[]).join(" "));
+  if(/\b(salade|verrine|taboule|wrap|bowl|poke|gaspacho|carpaccio|tartare|froid|overnight|smoothie)/.test(t))return"froid";
+  return"chaud";
+}
+function termHit(key,term,dairy){
+  const iw=words(key),tw=words(keyOf(term));
+  if(!tw.every(w=>iw.includes(w)))return false;
+  if(dairy&&iw.some(w=>DAIRY_EXEMPT.includes(w)))return false;
+  return true;
+}
+function prefTerms(list){return list.map(d=>{const k=keyOf(d);return{terms:DISLIKE_GROUPS[k]||[k],dairy:DISLIKE_GROUPS[k]===DISLIKE_GROUPS["lactose"]};}).filter(x=>x.terms.length&&x.terms[0]);}
+function recipeHits(r,list){
+  const keys=[keyOf(r.name)].concat((r.ing||[]).map(g=>keyOf(g.n)));let n=0;
+  for(const p of prefTerms(list))if(keys.some(k=>p.terms.some(t=>termHit(k,t,p.dairy))))n++;
+  return n;
+}
+function plannerPool(kind){
+  return allRecipes().filter(r=>{
+    if(r.planner===false||!r.ing||!r.ing.length)return false;
+    const c=recipeCat(r);
+    if(kind==="petitdej")return c==="petitdej";
+    if(kind==="plaisir")return!!r.plaisir&&(c==="plat"||c==="entree");
+    return(c==="plat"||c==="entree")&&!r.plaisir;
+  }).filter(r=>!recipeHits(r,nset().dislikes)&&recipeNutri(r).kcal>50);
+}
+function portionFactor(r,slot,plaisir){
+  const nu=recipeNutri(r),t=slotTarget(slot);
+  if(!nu.kcal)return 1;
+  const f=t.kcal/nu.kcal;
+  return Math.round(Math.min(plaisir?1.3:2,Math.max(plaisir?0.8:0.6,f))*20)/20;
+}
+const scoreBase=new Map();
+function mealScore(r,slot,ctx,opt={}){
+  const ck=r.id+"|"+slot+"|"+(opt.plaisir?1:0);
+  let s=scoreBase.get(ck);
+  if(s==null){s=baseScore(r,slot,opt);scoreBase.set(ck,s);}
+  const used=ctx.used.get(r.id)||0;s+=used*(slot==="petitdej"?0.5:1.2);
+  if(ctx.dayIds&&ctx.dayIds.has(r.id))s+=3;
+  s+=Math.random()*0.25;
+  return s;
+}
+function baseScore(r,slot,opt){
+  const nu=recipeNutri(r),t=slotTarget(slot),f=portionFactor(r,slot,opt.plaisir);
+  let s=0;
+  if(!opt.plaisir){
+    s+=1.5*Math.abs(nu.kcal*f-t.kcal)/Math.max(t.kcal,1);
+    s+=1.2*Math.abs(nu.p*f-t.p)/Math.max(t.p,1)+0.8*Math.abs(nu.g*f-t.g)/Math.max(t.g,1)+0.8*Math.abs(nu.l*f-t.l)/Math.max(t.l,1)+0.6*Math.abs(nu.f*f-t.f)/Math.max(t.f,1);
+    if(nu.cover<0.6)s+=0.5;
+  }
+  const meals=slotsFor().length*7,perMeal=Math.max(0.5,nset().budget/meals);
+  const cost=nu.cost*f*nset().persons;
+  s+=Math.max(0,cost/perMeal-1)*1.5+0.2*cost/perMeal;
+  // stock et produits à finir vite
+  const ings=(r.ing||[]).filter(g=>!g.o);let inStock=0,urgent=0;
+  for(const g of ings){const cv=stockCover(g);if(cv.items.length){inStock++;if(cv.items.some(i=>{const d=daysUntil(i.expiry);return d!=null&&d<=3;}))urgent++;}}
+  s-=0.4*(ings.length?inStock/ings.length:0)+Math.min(0.6,0.3*urgent);
+  s-=Math.min(0.9,0.3*recipeHits(r,nset().likes));
+  return s;
+}
+function pickBest(pool,slot,ctx,opt={}){
+  const temp=opt.temp||"any",ex=new Set(opt.exclude||[]);
+  let cands=pool.filter(r=>!ex.has(r.id)&&(opt.batchOnly?r.batch:true));
+  const t1=temp==="any"?cands:cands.filter(r=>inferTemp(r)===temp);
+  if(t1.length)cands=t1;
+  if(!cands.length)return null;
+  let best=null,bs=1e9;
+  for(const r of cands){const sc=mealScore(r,slot,ctx,opt);if(sc<bs){bs=sc;best=r;}}
+  return best;
+}
+const slotKey=(d,s)=>d+"-"+s;
+const tempPref=slot=>slot==="dej"?nset().tempDej:slot==="din"?nset().tempDin:"any";
+function weekCtx(exceptKey){
+  const used=new Map();const w=state.week;
+  for(const k in w.meals){if(k===exceptKey)continue;const m=w.meals[k];used.set(m.id,(used.get(m.id)||0)+(m.kind==="batch"?0.5:1));}
+  return{used};
+}
+function setMeal(k,r,slot,kind,group){
+  state.week.meals[k]={id:r.id,f:portionFactor(r,slot,kind==="plaisir"),kind:kind||"normal",group:group||null};
+}
+function generateWeek(){
+  scoreBase.clear();recipeNutriCache.clear();
+  state.week={gen:Date.now(),meals:{},rejected:{}};
+  const n=nset(),slots=slotsFor();
+  const pk=slotKey(n.plaisirDay,n.plaisirSlot);
+  // 1. repas plaisir
+  const pp=plannerPool("plaisir");
+  if(pp.length&&slots.includes(n.plaisirSlot)){const r=pickBest(pp,n.plaisirSlot,weekCtx(),{plaisir:true});if(r)setMeal(pk,r,n.plaisirSlot,"plaisir");}
+  // 2. batch cooking : déjeuners lun-mer (A) et jeu-ven (B)
+  const main=plannerPool("main");
+  if(n.batch){
+    for(const [group,days] of [["A",[0,1,2]],["B",[3,4]]]){
+      const free=days.filter(d=>!state.week.meals[slotKey(d,"dej")]);
+      if(free.length<2)continue;
+      const r=pickBest(main,"dej",weekCtx(),{temp:n.tempDej,batchOnly:true});
+      if(r)free.forEach(d=>setMeal(slotKey(d,"dej"),r,"dej","batch",group));
+    }
+  }
+  // 3. le reste, jour par jour
+  const bf=plannerPool("petitdej");
+  for(let d=0;d<7;d++){
+    const dayIds=new Set(slots.map(s=>state.week.meals[slotKey(d,s)]).filter(Boolean).map(m=>m.id));
+    for(const s of slots){
+      const k=slotKey(d,s);if(state.week.meals[k])continue;
+      const ctx=weekCtx();ctx.dayIds=dayIds;
+      const r=pickBest(s==="petitdej"?bf:main,s,ctx,{temp:tempPref(s)});
+      if(r){setMeal(k,r,s,"normal");dayIds.add(r.id);}
+    }
+  }
+  fitBudget();
+  save();
+}
+/* Coût de la semaine : liste de courses (stock déduit), prix relevés sinon prix moyens */
+function weekPlanMap(){
+  const map={},recipes=allRecipes(),p=nset().persons;
+  for(const k in state.week.meals){const m=state.week.meals[k];const r=recipes.find(x=>x.id===m.id);if(!r)continue;
+    map[r.id]=(map[r.id]||0)+m.f*p/recipePortions(r);}
+  return map;
+}
+function weekShop(){const rows=buildShopList(weekPlanMap(),[]);let total=0,unknown=0;
+  for(const r of rows){const c=r.best?r.best.cost:estimateRowCost(r);r.est=c;if(c==null)unknown++;else total+=c;}
+  rows.total=total;rows.unknown=unknown;return rows;}
+function fitBudget(){
+  const budget=nset().budget;if(!(budget>0))return;
+  const main=plannerPool("main"),bf=plannerPool("petitdej");
+  for(let iter=0;iter<25;iter++){
+    const cost=weekShop().total;if(cost<=budget)return;
+    let bestSwap=null;
+    for(const k in state.week.meals){
+      const m=state.week.meals[k];if(m.kind!=="normal")continue;
+      const [d,s]=k.split("-");const cur=allRecipes().find(r=>r.id===m.id);if(!cur)continue;
+      const curCost=recipeNutri(cur).cost*m.f;
+      const ctx=weekCtx(k);const curScore=mealScore(cur,s,ctx);
+      for(const r of (s==="petitdej"?bf:main)){
+        if(r.id===cur.id)continue;const t=tempPref(s);if(t!=="any"&&inferTemp(r)!==t)continue;
+        const f=portionFactor(r,s),gain=curCost-recipeNutri(r).cost*f;
+        if(gain<=0.05)continue;
+        if(mealScore(r,s,ctx)>curScore+1)continue;
+        if(!bestSwap||gain>bestSwap.gain)bestSwap={k,r,s,gain};
+      }
+    }
+    if(!bestSwap)return;
+    setMeal(bestSwap.k,bestSwap.r,bestSwap.s,"normal");
+  }
+}
+function otherMeal(k){
+  scoreBase.clear();recipeNutriCache.clear();
+  const m=state.week.meals[k];const [d,s]=k.split("-");
+  const rej=state.week.rejected[k]=state.week.rejected[k]||[];
+  if(m)rej.push(m.id);
+  const kind=m?m.kind:"normal";
+  if(kind==="plaisir"){
+    const r=pickBest(plannerPool("plaisir"),s,weekCtx(k),{plaisir:true,exclude:rej});
+    if(!r){state.week.rejected[k]=[];toast("Plus d'autre repas plaisir : on recommence la liste");return otherMeal(k);}
+    setMeal(k,r,s,"plaisir");
+  }else if(kind==="batch"){
+    const keys=Object.keys(state.week.meals).filter(x=>state.week.meals[x].group===m.group&&state.week.meals[x].kind==="batch");
+    const r=pickBest(plannerPool("main"),"dej",weekCtx(k),{temp:nset().tempDej,batchOnly:true,exclude:rej.concat(m.id)});
+    if(!r){toast("Pas d'autre plat pour le batch");return;}
+    keys.forEach(x=>setMeal(x,r,"dej","batch",m.group));
+  }else{
+    const pool=s==="petitdej"?plannerPool("petitdej"):plannerPool("main");
+    const ctx=weekCtx(k);ctx.dayIds=new Set(slotsFor().map(x=>state.week.meals[slotKey(d,x)]).filter(x=>x&&slotKey(d,x)!==k).map(x=>x.id));
+    let r=pickBest(pool,s,ctx,{temp:tempPref(s),exclude:rej});
+    if(!r){state.week.rejected[k]=[m.id];r=pickBest(pool,s,ctx,{temp:tempPref(s),exclude:[m.id]});}
+    if(r)setMeal(k,r,s,"normal");
+  }
+  save();
+}
+function movePlaisir(k){
+  scoreBase.clear();recipeNutriCache.clear();
+  const [d,s]=k.split("-");if(s==="petitdej"){toast("Le repas plaisir se place au déjeuner ou au dîner");return;}
+  const old=Object.keys(state.week.meals).find(x=>state.week.meals[x].kind==="plaisir");
+  const plaisirMeal=old?state.week.meals[old]:null;
+  if(old){delete state.week.meals[old];}
+  nset().plaisirDay=+d;nset().plaisirSlot=s;
+  const r=plaisirMeal?allRecipes().find(x=>x.id===plaisirMeal.id):pickBest(plannerPool("plaisir"),s,weekCtx(),{plaisir:true});
+  if(r)setMeal(k,r,s,"plaisir");
+  if(old&&old!==k){const [od,os]=old.split("-");const ctx=weekCtx();const nr=pickBest(os==="petitdej"?plannerPool("petitdej"):plannerPool("main"),os,ctx,{temp:tempPref(os)});if(nr)setMeal(old,nr,os,"normal");}
+  save();
+}
+function dayTotals(d){
+  const t={kcal:0,p:0,g:0,l:0,f:0};
+  for(const s of slotsFor()){const m=state.week.meals[slotKey(d,s)];if(!m)continue;const r=allRecipes().find(x=>x.id===m.id);if(!r)continue;
+    const nu=recipeNutri(r);for(const k in t)t[k]+=nu[k]*m.f;}
+  return t;
+}
+
+/* ---------- Onglet Nutrition : interface ---------- */
+let nutriSub="week";
+const fmtN=(v,u)=>Math.round(v)+(u==="kcal"?" kcal":" g");
+function nutriLine(nu,f){f=f||1;return`🔥 ${Math.round(nu.kcal*f)} kcal · P ${Math.round(nu.p*f)} g · G ${Math.round(nu.g*f)} g · L ${Math.round(nu.l*f)} g · F ${Math.round(nu.f*f)} g`;}
+function bar(v,target,label,unit,moreOk){
+  const pct=target?Math.round(v/target*100):0;const cls=pct>115?(moreOk?"ok":"over"):pct<85?"under":"ok";
+  return`<div class="nbar"><div class="row small"><span class="grow">${label}</span><b>${fmtN(v,unit)}</b><span class="muted">&nbsp;/ ${fmtN(target,unit)}</span></div><div class="ntrack"><div class="nfill ${cls}" style="width:${Math.min(100,pct)}%"></div></div></div>`;
+}
+function renderNutri(){
+  document.querySelectorAll("#nutriSeg button").forEach(b=>b.classList.toggle("on",b.dataset.ns===nutriSub));
+  ["week","shop","goals","mine"].forEach(k=>{$("#nutri_"+k).hidden=k!==nutriSub;});
+  if(nutriSub==="week")renderWeek();
+  if(nutriSub==="shop")renderWeekShop();
+  if(nutriSub==="goals")fillGoals();
+  if(nutriSub==="mine")renderMine();
+}
+function recipeById(id){return allRecipes().find(r=>r.id===id);}
+function renderWeek(){
+  const w=state.week;
+  if(!w||!Object.keys(w.meals||{}).length){
+    $("#nutri_week").innerHTML=`<div class="empty"><div class="big">🗓️</div><p>Indiquez vos objectifs (calories, macros, budget, goûts), puis générez votre semaine de repas.</p>
+      <button class="btn" data-nact="goals">🎯 Mes objectifs</button> <button class="btn secondary" data-nact="gen">⚡ Générer avec les réglages actuels</button></div>`;return;}
+  const n=nset(),slots=slotsFor();
+  // moyennes
+  const avg={kcal:0,p:0,g:0,l:0,f:0};for(let d=0;d<7;d++){const t=dayTotals(d);for(const k in avg)avg[k]+=t[k]/7;}
+  const shop=weekShop();
+  const bp=n.budget?Math.round(shop.total/n.budget*100):0;
+  let html=`<div class="card"><h3>Moyenne par jour <span class="small muted">(par personne)</span></h3>
+    ${NUTRI_KEYS.map(([k,l,u])=>bar(avg[k],n[k],l,u,k==="f"||k==="p")).join("")}
+    <div class="nbar" style="margin-top:10px"><div class="row small"><span class="grow">💶 Courses à prévoir${n.persons>1?" ("+n.persons+" pers.)":""}</span><b>${money(shop.total)}</b><span class="muted">&nbsp;/ ${money(n.budget)}</span></div>
+      <div class="ntrack"><div class="nfill ${bp>100?"over":"ok"}" style="width:${Math.min(100,bp)}%"></div></div>
+      ${bp>100?`<div class="small" style="color:var(--danger);margin-top:4px">Budget dépassé : essayez « 🔄 » sur les repas les plus chers, ou augmentez le budget.</div>`:""}
+      ${shop.unknown?`<div class="small muted" style="margin-top:4px">${shop.unknown} article(s) sans prix connu.</div>`:""}</div></div>`;
+  // batch
+  const groups={};for(const k in w.meals){const m=w.meals[k];if(m.kind==="batch"){(groups[m.group]=groups[m.group]||{id:m.id,f:m.f,days:[]}).days.push(+k.split("-")[0]);}}
+  const gl=Object.values(groups);
+  if(gl.length)html+=`<div class="card batch-card"><h3>🍱 Batch cooking du dimanche</h3>${gl.map(g=>{const r=recipeById(g.id);if(!r)return"";
+      const portions=String(Math.ceil(g.days.length*g.f*n.persons*2-1e-9)/2).replace(".",",");
+      return`<div class="row" style="margin:6px 0"><span style="font-size:24px">${esc(r.emoji||"🍽️")}</span><div class="grow"><b>${esc(r.name)}</b><div class="small muted">≈ ${portions} portions → déjeuners ${g.days.map(d=>DAYS[d].slice(0,3).toLowerCase()+".").join(", ")} · se garde 3 jours au frais</div></div></div>`;}).join("")}</div>`;
+  for(let d=0;d<7;d++){
+    const t=dayTotals(d);
+    html+=`<div class="card day-card"><div class="row"><h3 class="grow" style="margin:0">${DAYS[d]}</h3><span class="small muted">${Math.round(t.kcal)} kcal · P ${Math.round(t.p)} g</span></div>`;
+    for(const s of slots){
+      const k=slotKey(d,s),m=w.meals[k];const r=m&&recipeById(m.id);
+      if(!r){html+=`<div class="meal"><div class="small muted">${SLOT_LABEL[s]}</div><div class="row"><span class="grow muted">Aucun repas trouvé</span><button class="mbtn" data-other="${k}">🔄</button></div></div>`;continue;}
+      const nu=recipeNutri(r),temp=inferTemp(r);
+      const mult=m.f*n.persons/recipePortions(r);
+      const badges=(m.kind==="batch"?'<span class="badge">🍱 Batch</span> ':"")+(m.kind==="plaisir"?'<span class="badge warn">🍕 Plaisir</span> ':"")+(temp==="froid"?'<span class="badge">❄️ Froid</span>':'<span class="badge warn">🔥 Chaud</span>');
+      html+=`<div class="meal${m.kind==="plaisir"?" plaisir":""}"><div class="small muted">${SLOT_LABEL[s]}</div>
+        <div class="row" style="align-items:flex-start"><span style="font-size:24px">${esc(r.emoji||"🍽️")}</span>
+          <div class="grow"><div style="font-weight:600">${esc(r.name)}</div>
+            <div class="small muted">${badges} · ${Math.round(nu.kcal*m.f)} kcal · ${m.f===1?"1 portion":"×"+String(m.f).replace(".",",")+" portion"}</div></div>
+          <button class="mbtn" data-other="${k}" title="Autre repas">🔄</button>${s!=="petitdej"&&m.kind!=="plaisir"?`<button class="mbtn" data-plaisir="${k}" title="Repas plaisir ici">🍕</button>`:""}</div>
+        <details><summary>Ingrédients & préparation</summary>
+          <div class="small muted" style="margin:6px 0">${nutriLine(nu,m.f)}${nu.cover<0.7?" · valeurs partielles":""}</div>
+          <ul class="small" style="margin:4px 0 0;padding-left:18px">${r.ing.map(g=>`<li>${g.nq?esc(g.n):fmtQty(g.q*mult,g.d)+" "+esc(g.n.charAt(0).toLowerCase()+g.n.slice(1))}${g.o?" (facultatif)":""}</li>`).join("")}</ul>
+          ${r.steps&&r.steps.length?`<ol class="small">${r.steps.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:""}
+          ${n.persons>1||m.f!==1?`<div class="small muted">Quantités pour ${n.persons} personne(s).</div>`:""}
+        </details></div>`;
+    }
+    html+=`</div>`;
+  }
+  html+=`<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn secondary grow" data-nact="gen">🔄 Nouvelle semaine</button><button class="btn grow" data-nact="toshop">➡️ Liste vers Courses</button></div>
+    <p class="small muted" style="margin-top:10px">Valeurs nutritionnelles indicatives, calculées à partir des ingrédients. 🔄 propose un autre repas, 🍕 déplace le repas plaisir.</p>`;
+  $("#nutri_week").innerHTML=html;
+}
+function renderWeekShop(){
+  if(!state.week||!Object.keys(state.week.meals||{}).length){$("#nutri_shop").innerHTML=`<div class="empty"><div class="big">🛒</div><p>Générez d'abord votre semaine.</p></div>`;return;}
+  const rows=weekShop(),n=nset();
+  const covered=(rows.covered||[]).concat((rows.checks||[]).map(c=>({...c,via:c.stockName+" (à vérifier)"})));
+  const bp=n.budget?Math.round(rows.total/n.budget*100):0;
+  let html=`<div class="card"><div class="row"><span class="grow"><b>${rows.length}</b> article(s) à acheter</span><b>${money(rows.total)}</b><span class="muted small">&nbsp;/ ${money(n.budget)}</span></div>
+    <div class="ntrack" style="margin-top:6px"><div class="nfill ${bp>100?"over":"ok"}" style="width:${Math.min(100,bp)}%"></div></div>
+    <div class="small muted" style="margin-top:6px">${covered.length} produit(s) déjà dans votre stock, retirés de la liste.</div></div>`;
+  html+=`<div class="zone-title">🛍️ À acheter</div>`;
+  for(const [store,list] of groupShop(rows)){
+    html+=`<div class="small muted" style="margin:8px 0 4px;font-weight:600">${store?"🏪 "+esc(store)+" (prix relevés)":"≈ Prix moyens estimés"}</div>`;
+    html+=list.sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r=>`<div class="item"><div class="grow"><div class="name" style="white-space:normal">${esc(r.name)}</div><div class="meta">${r.buy!=null?fmtQty(r.buy,r.d):"quantité libre"} · ${[...r.from].join("")}</div></div><div style="text-align:right">${r.est!=null?`<b>${r.best?"":"≈ "}${money(r.est)}</b>`:`<span class="muted small">—</span>`}</div></div>`).join("");
+  }
+  if(!rows.length)html+=`<p class="small muted">Rien à acheter : tout est en stock ! 🎉</p>`;
+  html+=`<div class="zone-title">✅ Déjà dans votre stock</div>`+(covered.length?covered.sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(c=>`<div class="item covered"><div class="grow"><div class="name" style="white-space:normal">${esc(c.name)}</div><div class="meta">${c.need?fmtQty(c.need,c.d)+" · ":""}${esc(c.via||"")}</div></div><span>✅</span></div>`).join(""):`<p class="small muted">Aucun ingrédient du menu n'est en stock.</p>`);
+  html+=`<button class="btn block" data-nact="toshop" style="margin-top:12px">➡️ Envoyer vers l'onglet Courses (cocher en magasin, partager…)</button>`;
+  $("#nutri_shop").innerHTML=html;
+}
+function fillGoals(){
+  const n=nset();
+  for(const [k] of NUTRI_KEYS)$("#ng_"+k).value=n[k];
+  $("#ng_budget").value=n.budget;$("#ng_persons").value=n.persons;$("#ng_breakfast").checked=n.breakfast;$("#ng_batch").checked=n.batch;
+  $("#ng_tempDej").value=n.tempDej;$("#ng_tempDin").value=n.tempDin;$("#ng_plaisirDay").value=n.plaisirDay;$("#ng_plaisirSlot").value=n.plaisirSlot;
+  $("#ng_likes").value=n.likes.join(", ");$("#ng_dislikes").value=n.dislikes.join(", ");
+}
+function readGoals(){
+  const n=nset(),num=(id,min,max,def)=>{const v=parseFloat(String($(id).value).replace(",","."));return v>=min&&v<=max?v:def;};
+  n.kcal=num("#ng_kcal",800,6000,2000);n.p=num("#ng_p",10,400,90);n.g=num("#ng_g",10,800,240);n.l=num("#ng_l",10,300,70);n.f=num("#ng_f",5,100,30);
+  n.budget=num("#ng_budget",5,2000,60);n.persons=Math.round(num("#ng_persons",1,12,1));
+  n.breakfast=$("#ng_breakfast").checked;n.batch=$("#ng_batch").checked;n.tempDej=$("#ng_tempDej").value;n.tempDin=$("#ng_tempDin").value;
+  n.plaisirDay=+$("#ng_plaisirDay").value;n.plaisirSlot=$("#ng_plaisirSlot").value;
+  const list=v=>v.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);
+  n.likes=list($("#ng_likes").value);n.dislikes=list($("#ng_dislikes").value);
+  save();
+}
+function renderMine(){
+  const mine=allRecipes().filter(r=>!isBase(r));
+  $("#nutri_mineList").innerHTML=mine.length?mine.map(r=>{const nu=recipeNutri(r),c=CATS[recipeCat(r)];
+    return`<div class="item"><span style="font-size:22px">${esc(r.emoji||"🍽️")}</span><div class="grow"><div class="name" style="white-space:normal">${esc(r.name)}</div>
+      <div class="meta">${c.icon} ${c.one} · ${recipePortions(r)} portion(s) · ${nu.kcal?Math.round(nu.kcal)+" kcal/portion":"valeurs inconnues"}${r.plaisir?" · 🍕":""}${r.batch?" · 🍱":""}</div>
+      <label class="small" style="display:flex;gap:6px;align-items:center;margin-top:4px"><input type="checkbox" data-plan-toggle="${esc(r.id)}"${r.planner!==false?" checked":""}> Proposer dans le planificateur</label></div>
+      <button class="mbtn" data-redit2="${esc(r.id)}">✏️</button></div>`;}).join("")
+    :`<p class="small muted">Pas encore de recette personnelle. Importez-en ci-dessus ou créez-en une.</p>`;
+}
+function importRecipes(text){
+  text=String(text||"").trim();if(!text)return 0;
+  const out=[];
+  const mk=(name,ingLines,steps,extra)=>{const ing=ingLines.map(l=>typeof l==="string"?parseIngLine(l):l).filter(Boolean);if(!name||!ing.length)return;
+    out.push({id:"c"+uid(),name:cap(name),emoji:extra.emoji||guessEmoji(name),cat:CATS[extra.cat]?extra.cat:guessCat(name),time:parseInt(extra.time,10)||null,portions:parseInt(extra.portions,10)||null,
+      temp:extra.temp,batch:!!extra.batch,plaisir:!!extra.plaisir,planner:extra.planner!==false,tags:extra.tags||[],ing,steps:(steps||[]).map(String),custom:1});};
+  if(/^[\[{]/.test(text)){
+    try{const j=JSON.parse(text);const list=Array.isArray(j)?j:(j.recipes||[]);
+      for(const r of list)mk(r.name,r.ing||r.ingredients||r.lines||[],r.steps||r.instructions||[],r);}catch(e){throw new Error("Fichier JSON illisible");}
+  }else{
+    for(const chunk of text.split(/\n\s*(?:-{3,}|={3,}|\*{3,})\s*\n/)){const p=parseRecipeText(chunk);mk(p.name,p.ing,p.steps,{time:p.time,portions:p.portions});}
+  }
+  state.recipes.push(...out);save();renderAll();
+  return out.length;
+}
+
 /* ---------- Divers ---------- */
 function renderStores(){
   const set=new Set();Object.values(state.prices).forEach(e=>Object.values(e.stores).forEach(s=>set.add(s.label)));
   $("#storeList").innerHTML=[...set].map(s=>`<option value="${esc(s)}">`).join("");
   if(!$("#mStore").value&&state.lastStore)$("#mStore").placeholder=state.lastStore;
 }
-function renderAll(){renderStock();renderPrices();renderRecipes();renderStores();renderShop();}
+function renderAll(){renderStock();renderPrices();renderRecipes();renderStores();renderShop();renderNutri();}
 function updateShopBadge(){const n=Object.keys(state.plan).length;const b=$("#shopBadge");b.textContent=n;b.hidden=!n;}
 function fillZoneSelect(sel,withAuto){sel.innerHTML=(withAuto?'<option value="">Automatique</option>':"")+Object.entries(ZONES).map(([k,z])=>`<option value="${k}">${z.icon} ${z.label}</option>`).join("");}
 function toForm(q,d){if(d==="mass")return q<1?[+(q*1000).toFixed(1),"g"]:[+q.toFixed(3),"kg"];if(d==="vol")return q<1?[+(q*100).toFixed(1),"cl"]:[+q.toFixed(3),"L"];return[+q.toFixed(2),"u"];}
@@ -1937,6 +2567,29 @@ $("#mAdd").onclick=()=>{
   };
 })();
 
+/* Nutrition */
+$("#nutriSeg").addEventListener("click",e=>{const b=e.target.closest("[data-ns]");if(!b)return;nutriSub=b.dataset.ns;renderNutri();window.scrollTo(0,0);});
+$("#view-nutri").addEventListener("click",e=>{
+  const o=e.target.closest("[data-other]");if(o){otherMeal(o.dataset.other);renderNutri();toast("🔄 Nouveau repas proposé");return;}
+  const pl=e.target.closest("[data-plaisir]");if(pl){movePlaisir(pl.dataset.plaisir);renderNutri();toast("🍕 Repas plaisir déplacé");return;}
+  const ed=e.target.closest("[data-redit2]");if(ed){const r=allRecipes().find(x=>x.id===ed.dataset.redit2);if(r)openRecipeDlg(r);return;}
+  const pr=e.target.closest("[data-preset]");if(pr){const ps=NUTRI_PRESETS[pr.dataset.preset];for(const [k] of NUTRI_KEYS)$("#ng_"+k).value=ps[k];return;}
+  const a=e.target.closest("[data-nact]");if(!a)return;const act=a.dataset.nact;
+  if(act==="goals"){nutriSub="goals";renderNutri();}
+  if(act==="gen"){generateWeek();nutriSub="week";renderNutri();toast("🗓️ Semaine générée");}
+  if(act==="savegen"){readGoals();generateWeek();nutriSub="week";renderNutri();window.scrollTo(0,0);toast("🗓️ Semaine générée selon vos objectifs");}
+  if(act==="toshop"){const map=weekPlanMap();if(Object.keys(state.plan).length&&!confirm("Remplacer les recettes déjà choisies dans l'onglet Courses par le menu de la semaine ?"))return;
+    state.plan=map;state.shopDone={};save();renderAll();document.querySelector('#tabs [data-view="shop"]').click();toast("🛒 Liste envoyée dans Courses");}
+  if(act==="import"){try{const n=importRecipes($("#nImportText").value);if(n){$("#nImportText").value="";toast("📥 "+n+" recette(s) importée(s)");}else toast("Aucune recette reconnue : vérifiez qu'il y a un titre et des ingrédients");}catch(err){toast("⚠️ "+err.message);}}
+  if(act==="importfile")$("#nImportFile").click();
+  if(act==="newrecipe")openRecipeDlg(null);
+});
+$("#view-nutri").addEventListener("change",e=>{const t=e.target.closest("[data-plan-toggle]");if(!t)return;const id=t.dataset.planToggle;
+  let r=state.recipes.find(x=>x.id===id);if(!r){const b=allRecipes().find(x=>x.id===id);if(!b)return;r={...b,custom:1};state.recipes.push(r);}
+  r.planner=t.checked;save();});
+$("#nImportFile").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const n=importRecipes(rd.result);toast(n?"📥 "+n+" recette(s) importée(s)":"Aucune recette reconnue dans ce fichier");}catch(err){toast("⚠️ "+err.message);}};rd.readAsText(f);};
+
 /* Courses */
 $("#shopPickBtn").onclick=()=>{shopPickOpen=!shopPickOpen;renderShop();};
 $("#shopSearchIn").addEventListener("input",e=>{shopSearch=e.target.value;renderShop();});
@@ -2004,6 +2657,8 @@ $("#importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=ne
 /* Init */
 RECIPES.forEach(r=>{if(!r.ing&&r.lines)r.ing=r.lines.map(parseIngLine).filter(Boolean);});
 fillZoneSelect($("#mZone"),true);fillZoneSelect($("#eZone"),false);fillZoneSelect($("#sZone"),false);
+$("#ng_plaisirDay").innerHTML=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join("");
+$("#ng_presets").innerHTML=Object.entries(NUTRI_PRESETS).map(([k,p])=>`<button class="chip" data-preset="${k}">${p.label} · ${p.kcal} kcal</button>`).join("");
 $("#rCat").innerHTML=Object.entries(CATS).map(([k,c])=>`<option value="${k}">${c.icon} ${c.one}</option>`).join("");
 load();renderAll();
 if("serviceWorker" in navigator&&location.protocol.startsWith("http")){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
